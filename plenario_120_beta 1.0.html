@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plenário 120 - Tribunal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#1b2330;font-family:system-ui,Segoe UI,Arial,sans-serif;color:#fff}
+canvas{display:block}
+#ui{position:fixed;top:0;left:0;right:0;padding:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;justify-content:center;pointer-events:none}
+#ui>*{pointer-events:auto}
+.panel{background:rgba(15,20,30,.85);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:8px 12px}
+#score{display:flex;gap:8px;flex-wrap:wrap}
+.pl{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;border:2px solid transparent;background:rgba(255,255,255,.06);min-width:120px}
+.pl.active{border-color:#fff;background:rgba(255,255,255,.2);box-shadow:0 0 12px rgba(255,255,255,.4)}
+.dot{width:16px;height:16px;border-radius:50%;flex:none}
+.pl b{display:block;font-size:12px;opacity:.85;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tname{word-break:break-word;max-width:200px;display:block}
+#setup{position:fixed;inset:0;background:rgba(10,14,22,.94);display:flex;align-items:center;justify-content:center;z-index:20;padding:12px}
+#setup .box{background:#222b3a;border-radius:16px;padding:26px 30px;width:min(94vw,440px);text-align:center}
+#setup h2{margin:0 0 4px;font-size:28px}
+#setup p{margin:0 0 16px;opacity:.75}
+.row{display:flex;align-items:center;gap:10px;margin:10px 0;text-align:left}
+.row label{width:76px;font-weight:700;font-size:14px}
+.row input{flex:1;min-width:0;padding:10px 12px;border-radius:8px;border:2px solid #455;background:#151b27;color:#fff;font:inherit}
+.row input:focus{outline:0;border-color:#fff}
+#setup button{margin-top:14px;width:100%;font-size:18px}
+#modal .box button+button{margin-left:8px;background:#546e7a}
+.pl span{font-size:18px;font-weight:700}
+#ctrl{display:flex;align-items:center;gap:12px}
+#dieval{font-weight:700;min-width:110px}
+#hint{font-size:14px;font-weight:700;min-height:18px;margin-top:2px;max-width:260px}
+#tcard{position:fixed;right:12px;bottom:12px;display:flex;align-items:center;gap:12px;border:3px solid #e53935;transition:border-color .3s;z-index:5}
+#tcard small{display:block;opacity:.7;font-size:12px}
+#tcard b{font-size:18px}
+.pop{animation:pop .5s}
+@keyframes pop{0%{transform:scale(.8)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+@media(max-width:600px){#tcard svg{width:40px;height:50px}#tcard b{font-size:14px}#msg{bottom:80px!important;max-width:calc(100vw - 24px)!important}}
+button{font:inherit;font-weight:700;padding:10px 18px;border:0;border-radius:10px;background:#43a047;color:#fff;cursor:pointer}
+button:disabled{background:#555;cursor:not-allowed}
+#msg{position:fixed;left:12px;bottom:12px;max-width:calc(100vw - 300px);font-size:16px;min-height:24px}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:10}
+#modal .box{background:#222b3a;border-radius:16px;padding:28px 36px;text-align:center;min-width:300px}
+#modal h2{margin:0 0 6px;font-size:28px}
+#rank{list-style:none;padding:0;margin:16px 0}
+#rank li{padding:6px 10px;margin:4px 0;border-radius:8px;background:rgba(255,255,255,.08);display:flex;gap:10px;align-items:center}
+#rank li span:last-child{margin-left:auto;font-weight:700}
+
+body{font-family:Cinzel,Georgia,"Times New Roman",serif;background:#120a0c}
+.panel{background:linear-gradient(#3b2416,#24150d);border:2px solid #c9a227;box-shadow:inset 0 0 0 2px #1a0f08,0 4px 14px #000a}
+button{background:linear-gradient(#e2bd48,#9a7410);color:#2a1606;border:2px solid #f3d77a;text-transform:uppercase;letter-spacing:1px;box-shadow:0 3px 0 #5b4208}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 #5b4208}
+button:disabled{background:#555;color:#999;border-color:#777;box-shadow:none}
+.pl.active{border-color:#ffd54a;box-shadow:0 0 14px rgba(255,213,74,.6)}
+.pl .dot{width:30px;height:30px;border:2px solid #c9a227;background-size:cover;background-position:center}
+#modal .box,#setup .box{background:linear-gradient(#3b2416,#22130b);border:3px solid #c9a227;box-shadow:inset 0 0 0 3px #1a0f08,0 0 40px #000}
+#modal .box button+button{background:#546e7a}
+.protest{background:linear-gradient(#e0434e,#9b1822)!important;color:#fff!important;border-color:#ffb3b8!important;box-shadow:0 3px 0 #5a0c12!important}
+#setup .box{max-height:94vh;overflow:auto}
+#setup h2{color:#ffd54a;letter-spacing:2px;text-shadow:0 2px 0 #000}
+.row .f{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.row b{font-size:13px;color:#ffd54a}
+.av{display:flex;gap:6px;align-items:center}
+.av input:not([type=file]){flex:1;font-size:12px;padding:6px 8px}
+.row input[type=file]{flex:none;width:46%;padding:4px;border:1px dashed #c9a227;background:#2a1a10;font-size:11px}
+.th{width:40px;height:40px;border-radius:6px;border:2px solid #c9a227;object-fit:cover;display:none}
+#avatar{width:84px;height:84px;border:3px solid currentColor;border-radius:10px;overflow:hidden;background:#1b1020;box-shadow:0 0 0 2px #c9a227;flex:none}
+#avatar img,#avatar svg{width:100%;height:100%;object-fit:cover;display:block}
+@media(max-width:600px){#avatar{width:52px;height:52px}#tcard svg{width:100%!important;height:100%!important}}
+
+/* ===== Cartas pedagógicas ===== */
+#carta{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;z-index:12;padding:12px}
+#carta .cv{width:min(440px,94vw);max-height:92vh;overflow:auto;border-radius:16px;padding:22px 26px;text-align:center;color:#f5ead0;border:4px double #c9a227;box-shadow:inset 0 0 0 3px #1a0f08,0 0 50px #000;animation:cartaIn .45s cubic-bezier(.2,1.3,.4,1)}
+#carta.verde .cv{background:linear-gradient(#1f4a2e,#0f2a1a)}
+#carta.vermelho .cv{background:linear-gradient(#5a1a20,#2a0b0e)}
+#carta .sel{font-size:12px;letter-spacing:3px;color:#ffd54a}
+#carta .ic{font-size:44px;margin:4px 0}
+#carta h3{margin:4px 0 10px;font-size:22px;color:#ffd54a;text-shadow:0 2px 0 #000}
+#carta .tx{font-family:Georgia,serif;font-size:16px;line-height:1.5;text-align:left;background:rgba(0,0,0,.28);border-radius:10px;padding:12px 14px;margin:0 0 10px}
+#carta .li{font-size:14px;font-style:italic;color:#e8dcc0;margin:0 0 12px}
+#carta .pt{font-size:30px;font-weight:800;margin:6px 0 14px}
+#carta.verde .pt{color:#69f0ae}#carta.vermelho .pt{color:#ff8a80}
+@keyframes cartaIn{from{transform:translateY(40px) rotate(-4deg) scale(.85);opacity:0}to{transform:none;opacity:1}}
+
+/* ===== Inventário ===== */
+#inv{position:fixed;right:12px;bottom:132px;z-index:5;padding:8px 10px;max-width:calc(100vw - 24px)}
+#inv h4{margin:0 0 6px;font-size:12px;letter-spacing:1.5px;color:#ffd54a;display:flex;justify-content:space-between;gap:12px;text-shadow:0 1px 0 #000;cursor:pointer;user-select:none}
+#invT{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#inv.min #invSlots{display:none}
+#inv.min h4{margin-bottom:0}
+#invSlots{display:flex;gap:6px}
+.slot{width:74px;min-height:92px;border-radius:8px;border:2px solid #7a5a1c;background:rgba(0,0,0,.35);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:4px 3px;text-align:center}
+.slot.vazio{border-style:dashed;opacity:.55;justify-content:center;font-size:10px;color:#cdb98a;letter-spacing:1px;text-transform:uppercase}
+.slot.cheio{border-color:#c9a227;background:linear-gradient(#4a2e1a,#2a170d);box-shadow:inset 0 0 8px rgba(255,213,74,.25)}
+.slot .sic{font-size:26px;line-height:1.1}
+.slot .nm{font-size:9px;line-height:1.15;color:#f5ead0;min-height:21px;display:flex;align-items:center;justify-content:center}
+.slot button{padding:3px 6px;font-size:10px;width:100%;letter-spacing:.5px;border-radius:6px;box-shadow:0 2px 0 #5b4208}
+@media(max-width:600px){#inv{bottom:160px;right:8px;padding:6px 8px}.slot{width:calc((100vw - 62px)/4);max-width:74px;min-height:84px}#invT{max-width:150px}}
+
+/* ===== Modal de itens ===== */
+#im{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:14;padding:12px}
+#im .box{width:min(460px,94vw);max-height:92vh;overflow:auto;background:linear-gradient(#3b2416,#22130b);border:4px double #c9a227;border-radius:16px;box-shadow:inset 0 0 0 3px #1a0f08,0 0 50px #000;padding:22px 26px;text-align:center;color:#f5ead0;animation:cartaIn .45s cubic-bezier(.2,1.3,.4,1)}
+#im .sel{font-size:12px;letter-spacing:3px;color:#ffd54a}
+#im .bic{font-size:52px;margin:4px 0;line-height:1.2}
+#im h3{margin:4px 0 10px;font-size:22px;color:#ffd54a;text-shadow:0 2px 0 #000}
+#im .tx{font-family:Georgia,serif;font-size:15px;line-height:1.5;text-align:left;white-space:pre-line;background:rgba(0,0,0,.28);border-radius:10px;padding:10px 14px;margin:0 0 14px}
+#im .opts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+#im .opts button{flex:1 1 140px;font-size:13px;padding:9px 12px}
+#im .opts button small{display:block;font-size:11px;opacity:.85;text-transform:none;letter-spacing:0;margin-top:2px}
+#im .opts button.sec{background:linear-gradient(#78909c,#455a64);color:#fff;border-color:#b0bec5;box-shadow:0 3px 0 #263238}
+</style>
+</head>
+<body>
+<div id="ui">
+  <div class="panel" id="score"></div>
+  <div class="panel" id="ctrl">
+    <div><div id="dieval">Veredito: —</div><div id="hint"></div></div>
+    <button id="roll">Rolar Dado</button>
+  </div>
+</div>
+<div id="msg" class="panel">Bem-vindo! Jogador Vermelho começa.</div>
+<div id="tcard" class="panel">
+  <div id="avatar" style="color:#e53935"><img id="avimg" alt="" style="display:none">
+    <svg id="avsvg" viewBox="0 0 64 64"><rect width="64" height="64" fill="currentColor" opacity=".35"/><path d="M6 64Q8 44 32 42Q56 44 58 64Z" fill="#1d1a2b"/><path d="M26 42L32 54L38 42Z" fill="#fff"/><path d="M30 46h4l1.5 12-3.5 3-3.5-3z" fill="#b3202a"/><circle cx="32" cy="27" r="12" fill="#f1c9a5"/><path d="M19 25Q20 11 33 12Q46 12 45 25Q40 17 32 18Q24 18 19 25Z" fill="#2a1a12"/></svg></div>
+  <div><small>Na tribuna</small><b id="tname">Sua Vez: Jogador Vermelho</b></div>
+</div>
+<div class="panel" id="inv">
+  <h4 id="invH" title="Clique para recolher/expandir"><span id="invT">🎒 INVENTÁRIO</span><span id="invN">0/4</span></h4>
+  <div id="invSlots"></div>
+</div>
+<div id="im"><div class="box">
+  <div class="sel" id="imSel"></div><div class="bic" id="imIc"></div>
+  <h3 id="imTit"></h3><div class="tx" id="imTx"></div>
+  <div class="opts" id="imOpts"></div>
+</div></div>
+<div id="setup"><div class="box">
+  <h2>⚖️ Plenário 120</h2><p>Convoque os 4 jogadores: nome e retrato (opcionais). Em branco = nome padrão.</p>
+  <div id="rows"></div>
+  <button id="start">Iniciar Sessão</button>
+</div></div>
+<div id="carta"><div class="cv">
+  <div class="sel" id="cSelo"></div><div class="ic" id="cIc"></div>
+  <h3 id="cTit"></h3><div class="tx" id="cTx"></div><div class="li" id="cLi"></div>
+  <div class="pt" id="cPt"></div>
+  <button id="cOk">Compreender Impacto</button>
+</div></div>
+<div id="modal"><div class="box">
+  <h2 id="winner"></h2><div>Placar do Julgamento</div>
+  <ul id="rank"></ul>
+  <button id="again">Nova Sessão (mesmos nomes)</button><button id="rename" class="protest">Protesto! Novo cadastro</button>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js" onerror="void 0"></script>
+<script>
+const FIM = 120, COLS = 11, SP = 2.2;
+const PLAYERS = [
+  {nome:'Vermelho', cor:0xe53935, css:'#e53935'},
+  {nome:'Verde',    cor:0x2e7d32, css:'#43a047'},
+  {nome:'Azul',     cor:0x1e88e5, css:'#1e88e5'},
+  {nome:'Amarelo',  cor:0xfdd835, css:'#fdd835'}
+];
+const OFF = [[-.45,-.45],[.45,-.45],[-.45,.45],[.45,.45]];
+const FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+
+// ---------- Cena ----------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x120a0c);
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 200);
+camera.position.set(0, 20, 20);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffe2b0, 0.5));
+const sun = new THREE.DirectionalLight(0xffe6c0, 0.85);
+sun.position.set(10, 25, 12);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, {left:-20, right:20, top:20, bottom:-20, near:1, far:70});
+scene.add(sun);
+
+const base = new THREE.Mesh(new THREE.BoxGeometry(COLS*SP+1.5, 0.4, COLS*SP+1.5),
+  new THREE.MeshStandardMaterial({color:0x3a2214}));
+base.position.y = -0.3; base.receiveShadow = true; scene.add(base);
+
+// ---------- Tribunal (cenário) ----------
+const wood = new THREE.MeshStandardMaterial({color:0x4a2c17, roughness:.8});
+const gold = new THREE.MeshStandardMaterial({color:0xd4af37, metalness:.6, roughness:.35, emissive:0x3a2a00});
+const mk = (geo, mat, x, y, z) => {const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; scene.add(m); return m;};
+const B = (w, h, d, mat, x, y, z) => mk(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
+function woodTex(base, line, n) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+  const g = cv.getContext('2d'); g.fillStyle = base; g.fillRect(0, 0, 256, 256); g.strokeStyle = line; g.lineWidth = 3;
+  for (let i = 0; i < 8; i++) {
+    g.beginPath(); g.moveTo(0, i*32); g.lineTo(256, i*32); g.stroke();
+    for (let j = 0; j <= 4; j++) {g.beginPath(); g.moveTo(j*64 + (i%2)*32, i*32); g.lineTo(j*64 + (i%2)*32, i*32+32); g.stroke();}
+  }
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(n, n); return t;
+}
+const floor = mk(new THREE.PlaneGeometry(120, 120), new THREE.MeshStandardMaterial({map:woodTex('#4a2c17', '#2b190c', 15)}), 0, -0.5, 0);
+floor.rotation.x = -Math.PI/2; floor.castShadow = false;
+const wall = (col, x, z, ry) => {const m = mk(new THREE.PlaneGeometry(80, 34), new THREE.MeshStandardMaterial({color:col, roughness:.9}), x, 16, z); m.rotation.y = ry; m.castShadow = false;};
+wall(0x6b1d2a, 0, -38, 0); wall(0x1d2c4d, -38, 0, Math.PI/2); wall(0x1d2c4d, 38, 0, -Math.PI/2);
+B(80, 5, .5, wood, 0, 2, -37.7); B(.5, 5, 80, wood, -37.7, 2, 0); B(.5, 5, 80, wood, 37.7, 2, 0);
+B(80, .3, .6, gold, 0, 4.6, -37.7); B(.6, .3, 80, gold, -37.7, 4.6, 0); B(.6, .3, 80, gold, 37.7, 4.6, 0);
+const curt = new THREE.MeshStandardMaterial({color:0x8b1a2b, roughness:1});
+[-30, 30].forEach(x => {B(6, 28, 1, curt, x, 14, -36.8); B(6.4, .6, 1.2, gold, x, 28, -36.8);});
+// emblema da justiça
+const em = document.createElement('canvas'); em.width = em.height = 256; const eg = em.getContext('2d');
+eg.fillStyle = '#d4af37'; eg.beginPath(); eg.arc(128, 128, 124, 0, 7); eg.fill();
+eg.fillStyle = '#4a0f1a'; eg.beginPath(); eg.arc(128, 128, 100, 0, 7); eg.fill();
+eg.fillStyle = '#d4af37'; eg.font = 'bold 120px serif'; eg.textAlign = 'center'; eg.fillText('⚖', 128, 168);
+mk(new THREE.PlaneGeometry(9, 9), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(em), transparent:true}), 0, 15, -37.8).castShadow = false;
+// bancada do juiz
+B(18, 3, 4, wood, 0, 1, -30); B(18.6, .3, 4.6, gold, 0, 2.65, -30); B(18, .4, .1, gold, 0, 1.2, -27.95);
+B(3, 5, 1, new THREE.MeshStandardMaterial({color:0x5a1a26}), 0, 5, -32);
+// mesas da defesa (azul) e da acusação (vermelho)
+[[-12, 0x1e5fbf], [12, 0xb3202a]].forEach(([x, c]) => {
+  B(9, 1.6, 2.8, wood, x, .3, -19); B(9.4, .2, 3.2, gold, x, 1.2, -19);
+  B(4, 1, .1, new THREE.MeshStandardMaterial({color:c}), x, .4, -17.55);
+});
+// plateia
+[26, 30].forEach(z => {B(40, 1, 1.6, wood, 0, 0, z); B(40, 2.4, .4, wood, 0, 1.2, z + .8);});
+B(COLS*SP + 2.4, .3, COLS*SP + 2.4, gold, 0, -.45, 0);
+const lamp = new THREE.PointLight(0xffd27a, .7, 90); lamp.position.set(0, 14, -24); scene.add(lamp);
+
+// ---------- Controles ----------
+let controls = null, orb = {th:0, ph:1.0, r:28, tgt:new THREE.Vector3()};
+if (THREE.OrbitControls) {
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.maxPolarAngle = Math.PI/2.05;
+  controls.minDistance = 8; controls.maxDistance = 45;
+} else { // fallback simples caso o OrbitControls não carregue
+  let drag = false, lx = 0, ly = 0;
+  const el = renderer.domElement;
+  el.addEventListener('pointerdown', e => {drag = true; lx = e.clientX; ly = e.clientY;});
+  addEventListener('pointerup', () => drag = false);
+  addEventListener('pointermove', e => {
+    if (!drag) return;
+    orb.th -= (e.clientX-lx)*0.006; orb.ph = Math.min(1.5, Math.max(0.15, orb.ph-(e.clientY-ly)*0.006));
+    lx = e.clientX; ly = e.clientY;
+  });
+  el.addEventListener('wheel', e => {orb.r = Math.min(60, Math.max(8, orb.r*(1+Math.sign(e.deltaY)*0.08)));}, {passive:true});
+}
+function updateCam() {
+  if (controls) return controls.update();
+  camera.position.set(orb.r*Math.sin(orb.ph)*Math.sin(orb.th), orb.r*Math.cos(orb.ph), orb.r*Math.sin(orb.ph)*Math.cos(orb.th));
+  camera.lookAt(orb.tgt);
+}
+
+// ---------- Tabuleiro ----------
+const tiles = [];   // {tipo, valor}
+let tileGroup = new THREE.Group(); scene.add(tileGroup);
+
+function tilePos(i) {
+  const r = Math.floor(i/COLS); let c = i % COLS;
+  if (r % 2 === 1) c = COLS-1-c;
+  return new THREE.Vector3((c-5)*SP, 0.15, (r-5)*SP);
+}
+function label(txt, sub, dark) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const g = cv.getContext('2d');
+  g.fillStyle = dark ? '#222' : '#fff'; g.textAlign = 'center';
+  g.font = 'bold 44px Arial'; g.fillText(txt, 64, sub ? 62 : 78);
+  if (sub) { g.font = 'bold 34px Arial'; g.fillText(sub, 64, 104); }
+  return new THREE.CanvasTexture(cv);
+}
+function buildBoard() {
+  scene.remove(tileGroup); tileGroup = new THREE.Group(); scene.add(tileGroup); tiles.length = 0;
+  for (let i = 0; i <= FIM; i++) {
+    let tipo = 'branco', valor = 0;
+    if (i > 0 && i < FIM) {
+      const rnd = Math.random();
+      if (rnd < 0.35) {tipo = 'verde'; valor = (1+Math.floor(Math.random()*5))*10;}
+      else if (rnd < 0.65) {tipo = 'vermelho'; valor = -(1+Math.floor(Math.random()*3))*10;}
+    } else tipo = 'especial';
+    tiles.push({tipo, valor});
+    const cor = {verde:0x2e8b57, vermelho:0xb3202a, branco:0xe8dcc0, especial:0xffc107}[tipo];
+    const m = new THREE.Mesh(new THREE.BoxGeometry(SP-0.15, 0.3, SP-0.15), new THREE.MeshStandardMaterial({color:cor}));
+    const p = tilePos(i); m.position.set(p.x, 0, p.z); m.receiveShadow = true; tileGroup.add(m);
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(SP-0.02, 0.2, SP-0.02), gold); rim.position.set(p.x, -0.08, p.z); tileGroup.add(rim);
+    const txt = i === 0 ? 'INÍCIO' : i === FIM ? 'FIM' : String(i);
+    const sub = valor ? (valor > 0 ? '+' : '') + valor : '';
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8),
+      new THREE.MeshBasicMaterial({map:label(txt, sub, tipo === 'branco' || tipo === 'especial'), transparent:true}));
+    pl.rotation.x = -Math.PI/2; pl.position.set(p.x, 0.16, p.z); tileGroup.add(pl);
+  }
+}
+
+// ---------- Peões ----------
+const pawns = [];
+function buildPawns() {
+  pawns.forEach(p => scene.remove(p.mesh)); pawns.length = 0;
+  PLAYERS.forEach((pl, k) => {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({color:pl.cor});
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.12, 24), gold); disc.position.y = 0.06;
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.36, 20), mat); body.position.y = 0.3;
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.3, 12), wood); handle.position.y = 0.63;
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 12), wood); knob.position.y = 0.88;
+    [disc, body, handle, knob].forEach(m => m.castShadow = true);
+    g.add(disc, body, handle, knob);
+    g.position.copy(pawnPos(0, k)); scene.add(g);
+    pawns.push({mesh:g, pos:0, pts:0});
+  });
+}
+function pawnPos(i, k) {
+  const p = tilePos(i);
+  return new THREE.Vector3(p.x + OFF[k][0]*SP/2.2, p.y, p.z + OFF[k][1]*SP/2.2);
+}
+function hop(mesh, from, to) {
+  return new Promise(res => {
+    const t0 = performance.now(), d = 320;
+    (function f(now) {
+      const t = Math.min(1, (now - t0)/d);
+      mesh.position.lerpVectors(from, to, t);
+      mesh.position.y += Math.sin(Math.PI*t)*0.9;
+      if (t < 1) requestAnimationFrame(f); else res();
+    })(t0);
+  });
+}
+
+// ---------- Dado 3D ----------
+function faceTex(n) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#fafafa'; g.fillRect(0, 0, 128, 128);
+  g.strokeStyle = '#bbb'; g.lineWidth = 6; g.strokeRect(3, 3, 122, 122);
+  const P = {1:[[1,1]],2:[[0,0],[2,2]],3:[[0,0],[1,1],[2,2]],4:[[0,0],[2,0],[0,2],[2,2]],
+             5:[[0,0],[2,0],[1,1],[0,2],[2,2]],6:[[0,0],[2,0],[0,1],[2,1],[0,2],[2,2]]};
+  g.fillStyle = n === 1 ? '#d32f2f' : '#222';
+  P[n].forEach(([x, y]) => {g.beginPath(); g.arc(32+x*32, 32+y*32, 10, 0, 7); g.fill();});
+  return new THREE.CanvasTexture(cv);
+}
+// ordem das faces do BoxGeometry: +x,-x,+y,-y,+z,-z (opostas somam 7)
+const die = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4),
+  [3,4,1,6,2,5].map(n => new THREE.MeshStandardMaterial({map:faceTex(n)})));
+die.castShadow = true; die.visible = false; die.position.set(0, 0.85, 0); scene.add(die);
+const die2 = new THREE.Mesh(die.geometry, die.material); // segundo dado (item Dado Duplo)
+die2.castShadow = true; die2.visible = false; die2.position.set(0, 0.85, 0); scene.add(die2);
+const FACE_EULER = {1:[0,0,0], 6:[Math.PI,0,0], 3:[0,0,Math.PI/2], 4:[0,0,-Math.PI/2], 2:[-Math.PI/2,0,0], 5:[Math.PI/2,0,0]};
+function rolarDado(v, mesh = die, ox = 0, texto = true) {
+  return new Promise(res => {
+    const V = THREE.Vector3, Q = THREE.Quaternion;
+    const fin = new Q().setFromAxisAngle(new V(0,1,0), Math.random()*6.28)
+      .multiply(new Q().setFromEuler(new THREE.Euler(...FACE_EULER[v])));
+    const a1 = new V(Math.random()-.5, 1, Math.random()-.5).normalize();
+    const a2 = new V(1, Math.random()-.5, Math.random()-.5).normalize();
+    const x0 = ox ? ox + (Math.random()-.5)*.8 : (Math.random()-.5)*4, z0 = (Math.random()-.5)*(ox ? 2 : 4);
+    mesh.visible = true;
+    const t0 = performance.now(), d = 1800;
+    (function f(now) {
+      const t = Math.min(1, (now - t0)/d), e = (1-t)*(1-t);
+      mesh.position.set(x0*t, 0.85 + 5*Math.abs(Math.cos(t*Math.PI*2.5))*e, z0*t);
+      mesh.quaternion.copy(new Q().setFromAxisAngle(a1, e*6*Math.PI))
+        .multiply(new Q().setFromAxisAngle(a2, e*4*Math.PI)).multiply(fin);
+      if (t < 1) requestAnimationFrame(f);
+      else {if (texto) $('dieval').textContent = 'Veredito: ' + v; res();}
+    })(t0);
+  });
+}
+function mostrarDica(alvo) {
+  const t = tiles[alvo]; let txt, cor;
+  if (alvo >= FIM) {txt = `🏁 Casa ${alvo}: chegada ao FIM!`; cor = '#ffc107';}
+  else if (t.tipo === 'verde') {txt = `🟢 Casa ${alvo}: prova aceita! +${t.valor} pontos`; cor = '#66bb6a';}
+  else if (t.tipo === 'vermelho') {txt = `🔴 Casa ${alvo}: OBJEÇÃO! -${-t.valor} pontos`; cor = '#ef5350';}
+  else {txt = `⚪ Casa ${alvo}: neutra, nada acontece.`; cor = '#eee';}
+  $('hint').textContent = txt; $('hint').style.color = cor;
+}
+
+// ---------- UI / Estado ----------
+const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let turno = 0, ocupado = false, fim = false;
+
+function renderScore() {
+  $('score').innerHTML = PLAYERS.map((p, k) =>
+    `<div class="pl ${k === turno && !fim ? 'active' : ''}"><i class="dot" style="background:${p.css}"></i>
+     <div><b>${esc(p.nome)} · casa ${pawns[k].pos}</b><span>${pawns[k].pts} pts</span> <small style="opacity:.8;font-size:11px">🎒${inv[k].length}/${MAXINV}</small></div></div>`).join('');
+  const cur = PLAYERS[turno], card = $('tcard');
+  card.style.borderColor = cur.css; $('avatar').style.color = cur.css;
+  if (cur.img) {$('avimg').src = cur.img; $('avimg').style.display = 'block'; $('avsvg').style.display = 'none';}
+  else {$('avimg').style.display = 'none'; $('avsvg').style.display = 'block';}
+  document.querySelectorAll('#score .dot').forEach((d, k) => {const im = PLAYERS[k].img; d.style.backgroundImage = im ? `url("${im.replace(/"/g, '%22')}")` : 'none';});
+  $('tname').textContent = fim ? 'Fim de jogo' : `Sua Vez: ${cur.nome}`;
+  renderInv();
+  if (renderScore.last !== turno) {
+    renderScore.last = turno; card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
+  }
+}
+function msg(t) { $('msg').textContent = t; }
+
+// ===== Inventário de Itens =====
+const MAXINV = 4, CHANCE_ITEM = 0.10, ROUBO = 50;
+const ITENS = {
+  dado:  {ic:'🎲', nome:'Dado Duplo', desc:'Rola 2 dados no lugar do dado normal e avança a soma dos dois.'},
+  roubo: {ic:'⚖️', nome:'Roubo de Reputação', desc:`Escolha um rival: ele perde ${ROUBO} pontos e você ganha ${ROUBO}.`}
+};
+const ITEM_IDS = Object.keys(ITENS);
+let inv = [[], [], [], []];
+const sortearItem = () => ITEM_IDS[Math.floor(Math.random() * ITEM_IDS.length)];
+
+// Modal genérico: devolve (Promise) o "val" da opção clicada
+function imShow({selo, ic, tit, tx, opts}) {
+  return new Promise(res => {
+    $('imSel').textContent = selo || ''; $('imIc').textContent = ic || '';
+    $('imTit').textContent = tit || ''; $('imTx').textContent = tx || '';
+    const box = $('imOpts'); box.innerHTML = '';
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.innerHTML = esc(o.label) + (o.sub ? `<small>${esc(o.sub)}</small>` : '');
+      if (o.cls) b.className = o.cls;
+      b.onclick = () => {$('im').style.display = 'none'; res(o.val);};
+      box.appendChild(b);
+    });
+    const cx = $('im').firstElementChild; cx.style.animation = 'none'; void cx.offsetWidth; cx.style.animation = '';
+    $('im').style.display = 'flex';
+  });
+}
+
+async function receberItem(k, id) {
+  const it = ITENS[id], pl = PLAYERS[k], bag = inv[k];
+  if (bag.length < MAXINV) {
+    bag.push(id); renderScore();
+    await imShow({selo:'🎒 ITEM OBTIDO', ic:it.ic, tit:it.nome,
+      tx:`${pl.nome} encontrou um item na casa neutra!\n${it.desc}\nInventário: ${bag.length}/${MAXINV}`,
+      opts:[{label:'Guardar no inventário', val:0}]});
+    msg(`${pl.nome} guardou ${it.nome} no inventário.`);
+    return;
+  }
+  const r = await imShow({selo:'🎒 INVENTÁRIO CHEIO', ic:it.ic, tit:`Novo item: ${it.nome}`,
+    tx:`${pl.nome} já carrega ${MAXINV} itens.\n${it.desc}\nDescarte o item novo ou escolha um item atual para ser substituído por ele.`,
+    opts:[...bag.map((b, i) => ({label:`Trocar ${ITENS[b].ic} ${ITENS[b].nome}`, sub:`Slot ${i+1}`, val:i})),
+          {label:'Descartar item novo', cls:'sec', val:-1}]});
+  if (r === -1) msg(`${pl.nome} descartou ${it.nome}.`);
+  else {const velho = bag[r]; bag[r] = id; msg(`${pl.nome} trocou ${ITENS[velho].nome} por ${it.nome}.`);}
+  renderScore();
+}
+
+async function usarItem(idx) {
+  if (ocupado || fim || $('roll').disabled) return;
+  const k = turno, id = inv[k][idx]; if (!id) return;
+  if (id === 'dado') {
+    inv[k].splice(idx, 1);           // consumido ao usar
+    return jogar(true);
+  }
+  if (id === 'roubo') {
+    ocupado = true; $('roll').disabled = true; renderInv();
+    const alvos = PLAYERS.map((p, i) => i).filter(i => i !== k);
+    const r = await imShow({selo:'⚖️ ROUBO DE REPUTAÇÃO', ic:'⚖️', tit:'Escolha o alvo',
+      tx:`${PLAYERS[k].nome}: o rival escolhido perderá ${ROUBO} pontos e você ganhará ${ROUBO}.`,
+      opts:[...alvos.map(i => ({label:PLAYERS[i].nome, sub:`${pawns[i].pts} pts`, val:i})),
+            {label:'Cancelar', cls:'sec', val:-1}]});
+    if (r !== -1) {
+      inv[k].splice(idx, 1);         // consumido ao usar
+      pawns[r].pts -= ROUBO; pawns[k].pts += ROUBO; renderScore();
+      msg(`${PLAYERS[k].nome} roubou ${ROUBO} pontos de ${PLAYERS[r].nome}!`);
+      await imShow({selo:'⚖️ REPUTAÇÃO ROUBADA', ic:'⚖️', tit:'Roubo concluído!',
+        tx:`${PLAYERS[r].nome} perdeu ${ROUBO} pontos.\n${PLAYERS[k].nome} ganhou ${ROUBO} pontos.`,
+        opts:[{label:'Continuar', val:0}]});
+    }
+    ocupado = false; $('roll').disabled = false; renderScore();
+  }
+}
+
+function renderInv() {
+  const bag = inv[turno] || [], bloq = ocupado || fim || $('roll').disabled;
+  $('invT').textContent = `🎒 ${PLAYERS[turno].nome}`;
+  $('invN').textContent = `${bag.length}/${MAXINV}`;
+  let h = '';
+  for (let i = 0; i < MAXINV; i++) {
+    const id = bag[i];
+    if (id) {
+      const it = ITENS[id];
+      h += `<div class="slot cheio" title="${esc(it.desc)}"><div class="sic">${it.ic}</div><div class="nm">${esc(it.nome)}</div><button data-i="${i}" ${bloq ? 'disabled' : ''}>Usar</button></div>`;
+    } else h += `<div class="slot vazio">vazio</div>`;
+  }
+  $('invSlots').innerHTML = h;
+}
+
+// ===== Baralho dinâmico: Política + Deepfakes + IA =====
+// {J}=jogador. Cada carta: título, narrativa, lição. Os pontos vêm da casa em que o peão caiu.
+const CARTAS = {
+verde:[
+ {t:'Checagem antes do compartilhamento', n:'Um áudio atribuído a um candidato "confessando" um esquema viralizou. {J} não repassou: buscou a fonte original, consultou agências de checagem e descobriu que a voz era clonada por IA. Sua denúncia derrubou o boato antes das urnas.', l:'Antes de compartilhar, pergunte: quem publicou primeiro? Há veículo confiável confirmando?'},
+ {t:'Marca d\'água na campanha', n:'A equipe de {J} passou a rotular todo material feito com IA e a publicar os vídeos originais com data e local. Quando surgiu um deepfake falso da campanha, o público comparou e reconheceu a fraude em minutos.', l:'Transparência no uso de IA fortalece a confiança e facilita desmentir falsificações.'},
+ {t:'Denúncia à plataforma', n:'{J} notou uma rede de perfis automáticos (bots) repetindo a mesma mensagem com segundos de diferença. Reportou o padrão à plataforma, que derrubou a rede e reduziu o alcance da campanha de desinformação.', l:'Contas novas, textos idênticos e postagens em massa são sinais clássicos de bots.'},
+ {t:'Educação midiática no bairro', n:'{J} organizou uma oficina para ensinar eleitores a notar sinais de deepfake: piscar irregular, sombras estranhas, lábios fora de sincronia. Na semana seguinte, vários participantes avisaram os grupos de família sobre um vídeo falso.', l:'Alfabetização midiática é a vacina mais barata contra a manipulação.'},
+ {t:'IA a serviço da transparência', n:'{J} usou uma ferramenta de IA para resumir projetos de lei em linguagem simples e publicou a análise com as fontes oficiais. O debate público ficou mais informado e o material foi elogiado por jornalistas.', l:'IA pode ampliar a participação cidadã quando usada com fontes verificáveis e revisão humana.'},
+ {t:'Pedido de correção público', n:'Um vídeo editado de {J} tirou uma frase de contexto. Em vez de rebater com outro boato, {J} publicou a gravação completa e pediu correção aos veículos. A retratação veio em horas.', l:'Responder à manipulação com o contexto original e provas é mais eficaz do que revidar.'},
+ {t:'Verificação de imagem por busca reversa', n:'Uma foto de "multidão em comício" circulava como atual. {J} fez uma busca reversa e provou que era de outro país, anos antes. A checagem foi compartilhada por milhares de pessoas.', l:'Busca reversa de imagem revela fotos antigas ou geradas e reaproveitadas fora de contexto.'},
+ {t:'Código de ética para IA', n:'{J} convenceu a coligação a assinar um compromisso público: nada de vozes sintéticas de adversários, nada de perfis falsos e auditoria dos anúncios. O pacto virou exemplo para outras campanhas.', l:'Regras claras e públicas desestimulam o uso abusivo de IA na política.'}
+],
+vermelho:[
+ {t:'Deepfake de última hora', n:'Na véspera da votação, circulou um vídeo falso de {J} supostamente aceitando suborno. Era um deepfake. Mesmo desmentido, o estrago viralizou mais rápido que a correção e a reputação sofreu.', l:'Mentiras virais correm mais que correções. Desconfie de escândalos que surgem perto de eleições.'},
+ {t:'Exército de bots', n:'Milhares de contas automáticas inundaram as redes atacando {J} com a mesma hashtag. Parecia indignação popular, mas era fabricada. A impressão de consenso falso minou a credibilidade.', l:'Volume não é prova de verdade: robôs simulam multidões.'},
+ {t:'Voz clonada por IA', n:'Eleitores receberam ligações com a voz de {J} dizendo que o local de votação mudaria. Era áudio clonado. Muitos ficaram confusos e a campanha perdeu apoio e confiança.', l:'Confirme informações eleitorais apenas em canais oficiais, mesmo se a voz parecer conhecida.'},
+ {t:'Algoritmo da bolha', n:'Anúncios segmentados por IA mostravam a cada grupo uma versão contraditória das promessas de {J}. Quando as versões vieram à tona, o público se sentiu enganado.', l:'Microssegmentação pode esconder contradições e manipular emoções sem debate aberto.'},
+ {t:'Compartilhou sem checar', n:'{J} repassou um vídeo "bombástico" sem verificar. Era montagem com IA. A repercussão negativa obrigou um pedido público de desculpas e arranhou a imagem de responsável.', l:'Quem compartilha também é responsável. Um clique pode virar desinformação em escala.'},
+ {t:'Imagem fabricada', n:'Uma foto gerada por IA mostrava {J} em um evento que nunca aconteceu. Rápida de criar, difícil de desmentir: parte do público passou a duvidar de tudo o que {J} publicava.', l:'O "dividendo do mentiroso": quando tudo pode ser falso, até o verdadeiro perde credibilidade.'},
+ {t:'Perfil falso de apoio', n:'A campanha de {J} criou perfis falsos com rostos gerados por IA para elogiar o candidato. Jornalistas descobriram a farsa e o caso virou escândalo de manipulação.', l:'Fingir apoio popular com identidades sintéticas destrói a confiança quando é descoberto.'},
+ {t:'Notícia falsa gerada em massa', n:'Um site automatizado publicou centenas de "reportagens" falsas sobre {J}, com citações inventadas por IA. Sites de busca e redes replicaram o conteúdo antes de qualquer checagem.', l:'Textos fluentes não são sinal de verdade: IA também inventa fatos com muita convicção.'}
+]};
+let baralho = {verde:[], vermelho:[]};
+function sortearCarta(tipo, jogador, valor) {
+  if (!baralho[tipo].length) baralho[tipo] = CARTAS[tipo].map((_, i) => i).sort(() => Math.random() - .5);
+  const c = CARTAS[tipo][baralho[tipo].pop()];
+  return {tipo, titulo:c.t, narrativa:c.n.replace(/\{J\}/g, jogador), licao:c.l, valor};
+}
+function mostrarCarta(carta) {
+  return new Promise(res => {
+    const v = carta.tipo === 'verde', el = $('carta');
+    el.className = carta.tipo;
+    $('cSelo').textContent = v ? '⚖️ PROVA ACEITA' : '⚖️ OBJEÇÃO ACEITA';
+    $('cIc').textContent = v ? '🟢' : '🔴';
+    $('cTit').textContent = carta.titulo;
+    $('cTx').textContent = carta.narrativa;
+    $('cLi').textContent = '💡 ' + carta.licao;
+    $('cPt').textContent = (v ? '+' : '−') + Math.abs(carta.valor) + ' pontos';
+    el.style.display = 'flex';
+    $('cOk').onclick = () => {el.style.display = 'none'; res();};
+  });
+}
+
+async function jogar(duplo = false) {
+  if (ocupado || fim) return;
+  ocupado = true; $('roll').disabled = true; renderInv();
+  const v1 = 1 + Math.floor(Math.random()*6), v2 = duplo ? 1 + Math.floor(Math.random()*6) : 0, v = v1 + v2;
+  const pl = PLAYERS[turno], pw = pawns[turno];
+  $('dieval').textContent = 'Rolando...'; $('hint').textContent = '';
+  if (duplo) {
+    await Promise.all([rolarDado(v1, die, -1.6, false), rolarDado(v2, die2, 1.6, false)]);
+    $('dieval').textContent = `Veredito: ${v1} + ${v2} = ${v}`;
+  } else await rolarDado(v1);
+  const alvo = Math.min(FIM, pw.pos + v);
+  mostrarDica(alvo);
+  msg(duplo ? `🎲 Dado Duplo! ${v1} + ${v2} = ${v}. ${pl.nome} apresenta uma prova e avança ${alvo - pw.pos} casa(s).`
+            : `Veredito do Dado: ${v}! ${pl.nome} apresenta uma prova e avança ${alvo - pw.pos} casa(s).`);
+  await new Promise(r => setTimeout(r, 1100));
+  die.visible = false; die2.visible = false;
+  while (pw.pos < alvo) {
+    const from = pawnPos(pw.pos, turno), to = pawnPos(pw.pos + 1, turno);
+    await hop(pw.mesh, from, to); pw.pos++; renderScore();
+  }
+  if (pw.pos >= FIM) { fim = true; msg(`${pl.nome} chegou ao Veredito Final! Sessão encerrada!`); renderScore(); return mostrarFim(); }
+  const t = tiles[pw.pos];
+  if (t.tipo === 'verde' || t.tipo === 'vermelho') {
+    msg(t.tipo === 'verde' ? `Procede! ${pl.nome} recebeu uma carta de Boa Conduta.` : `OBJEÇÃO! ${pl.nome} recebeu uma carta de Má Conduta.`);
+    await mostrarCarta(sortearCarta(t.tipo, pl.nome, t.valor));
+    pw.pts += t.valor; renderScore();
+    msg(t.tipo === 'verde' ? `${pl.nome} ganhou ${t.valor} pontos!` : `${pl.nome} perdeu ${-t.valor} pontos!`);
+  }
+  else {
+    msg(`Sem objeções: nada acontece com ${pl.nome}.`);
+    if (t.tipo === 'branco' && Math.random() < CHANCE_ITEM) await receberItem(turno, sortearItem());
+  }
+  turno = (turno + 1) % 4; renderScore();
+  ocupado = false; $('roll').disabled = false; renderInv();
+}
+
+function mostrarFim() {
+  const rank = PLAYERS.map((p, k) => ({p, pts:pawns[k].pts})).sort((a, b) => b.pts - a.pts);
+  const top = rank[0].pts, venc = rank.filter(r => r.pts === top);
+  $('winner').textContent = venc.length > 1 ? '⚖️ Julgamento empatado: ' + venc.map(r => r.p.nome).join(' e ')
+    : `⚖️ Veredito final: ${venc[0].p.nome} vence!`;
+  $('rank').innerHTML = rank.map((r, i) => `<li><i class="dot" style="background:${r.p.css}"></i>
+    <span>${i+1}º ${esc(r.p.nome)}</span><span>${r.pts} pts</span></li>`).join('');
+  $('modal').style.display = 'flex';
+}
+
+function novo() {
+  baralho = {verde:[], vermelho:[]}; $('carta').style.display = 'none'; $('im').style.display = 'none';
+  inv = [[], [], [], []]; die2.visible = false;
+  buildBoard(); buildPawns();
+  turno = 0; ocupado = false; fim = false;
+  $('modal').style.display = 'none'; $('roll').disabled = false; $('dieval').textContent = 'Veredito: —'; $('hint').textContent = ''; die.visible = false;
+  msg(`Sessão aberta! A palavra é de ${PLAYERS[0].nome}.`); renderScore();
+}
+
+$('roll').onclick = () => jogar(false);
+$('invSlots').onclick = e => {const b = e.target.closest('button[data-i]'); if (b && !b.disabled) usarItem(+b.dataset.i);};
+$('invH').onclick = () => $('inv').classList.toggle('min');
+const fileImg = [null, null, null, null], NCOR = ['Vermelho', 'Verde', 'Azul', 'Amarelo'];
+$('rows').innerHTML = PLAYERS.map((p, k) => `<div class="row"><i class="dot" style="background:${p.css}"></i><div class="f"><b>${NCOR[k]}</b><input id="n${k}" maxlength="30" placeholder="Jogador ${k+1}"><div class="av"><img class="th" id="t${k}" alt=""><input type="file" id="f${k}" accept="image/*"><input id="u${k}" placeholder="ou URL da imagem"></div></div></div>`).join('');
+PLAYERS.forEach((p, k) => {
+  const th = $('t'+k), show = src => {th.src = src; th.style.display = 'block';};
+  th.onerror = () => th.style.display = 'none';
+  $('f'+k).onchange = e => {
+    const f = e.target.files[0]; if (!f) {fileImg[k] = null; return;}
+    const r = new FileReader(); r.onload = () => {fileImg[k] = r.result; show(r.result);}; r.readAsDataURL(f);
+  };
+  $('u'+k).oninput = e => {const u = e.target.value.trim(); if (u && !fileImg[k]) show(u);};
+});
+$('avimg').onerror = () => {$('avimg').style.display = 'none'; $('avsvg').style.display = 'block';};
+function iniciar() {
+  PLAYERS.forEach((p, k) => {p.nome = $('n'+k).value.trim() || `Jogador ${k+1}`; p.img = fileImg[k] || $('u'+k).value.trim() || null;});
+  $('setup').style.display = 'none'; novo();
+}
+$('start').onclick = iniciar;
+document.querySelectorAll('.row input').forEach(i => i.addEventListener('keydown', e => {if (e.key === 'Enter') iniciar();}));
+$('again').onclick = novo;
+$('rename').onclick = () => {$('modal').style.display = 'none'; $('setup').style.display = 'flex'; $('roll').disabled = true; renderInv();};
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+novo(); $('roll').disabled = true;
+(function loop() { requestAnimationFrame(loop); updateCam(); renderer.render(scene, camera); })();
+</script>
+</body>
+</html>
