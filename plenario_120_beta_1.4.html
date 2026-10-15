@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plenário 120 - Tribunal</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14122b;--paper:#fff7da;--blue:#1e6bff;--red:#ff2e4d;--yellow:#ffd400;--green:#22d65f;--purple:#7b3cff;--orange:#ff7a1a;
+  --tit:Bangers,Impact,"Arial Black",sans-serif;
+  --so:-3px -3px 0 #14122b,3px -3px 0 #14122b,-3px 3px 0 #14122b,3px 3px 0 #14122b,0 5px 0 #14122b}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#9fe3ff;font-family:Fredoka,"Baloo 2","Comic Sans MS",system-ui,sans-serif;font-weight:600;color:var(--ink)}
+canvas{display:block}
+.dot{width:16px;height:16px;border-radius:50%;flex:none}
+
+/* ===== Painéis e botões estilo HQ ===== */
+.panel{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:18px;box-shadow:0 6px 0 var(--ink);padding:8px 12px}
+button{font-family:var(--tit);font-size:20px;letter-spacing:1.5px;padding:9px 20px;border:4px solid var(--ink);border-radius:14px;background:var(--yellow);color:var(--ink);cursor:pointer;box-shadow:0 5px 0 var(--ink);transition:transform .1s}
+button:hover:not(:disabled){transform:translateY(-2px) rotate(-1deg)}
+button:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+button:disabled{background:#c9c6d9;color:#7b7894;cursor:not-allowed;box-shadow:0 3px 0 #6d6a87}
+.protest{background:var(--red)!important;color:#fff!important;text-shadow:2px 2px 0 var(--ink)}
+#mute{position:fixed;top:10px;right:10px;z-index:30;width:52px;height:52px;padding:0;border-radius:50%;font-size:26px;line-height:1;background:var(--yellow)}
+
+/* ===== Topo: placar + controles ===== */
+#ui{position:fixed;top:0;left:0;right:0;padding:10px 70px 10px 10px;display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;justify-content:center;pointer-events:none}
+#ui>*{pointer-events:auto}
+#score{display:flex;gap:10px;flex-wrap:wrap;background:var(--yellow)}
+.pl{--c:#999;display:flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border-radius:14px;border:3px solid var(--ink);background:#fff;min-width:130px;position:relative;transition:transform .2s,background .2s}
+.pl .dot{width:40px;height:40px;border:3px solid var(--ink);background-color:var(--c);background-size:cover;background-position:center}
+.pl b{display:block;font-size:12px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl span{font-family:var(--tit);font-size:25px;letter-spacing:1px}
+.pl small{font-size:11px}
+.pl.active{background:var(--c);transform:translateY(-3px) rotate(-2deg) scale(1.06);box-shadow:0 5px 0 var(--ink)}
+.pl.active b,.pl.active span,.pl.active small{color:#fff;text-shadow:-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink),1px 1px 0 var(--ink)}
+.pl.active::after{content:'SUA VEZ!';position:absolute;top:-15px;right:-8px;background:var(--red);color:#fff;font-family:var(--tit);font-size:13px;letter-spacing:1px;padding:1px 8px;border:2px solid var(--ink);border-radius:8px;transform:rotate(6deg)}
+#ctrl{display:flex;align-items:center;gap:14px;background:var(--blue);color:#fff}
+#dieval{font-family:var(--tit);font-size:24px;letter-spacing:1px;min-width:130px;text-shadow:var(--so)}
+#hint{font-size:13px;font-weight:700;margin-top:4px;max-width:270px;color:var(--ink);background:var(--paper);border:3px solid var(--ink);border-radius:10px;padding:2px 8px}
+#hint:empty{display:none}
+#roll{background:var(--red);color:#fff;font-size:26px;padding:10px 22px;text-shadow:2px 2px 0 var(--ink);animation:pulse 1s ease-in-out infinite}
+#roll:disabled{animation:none;text-shadow:none}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07) rotate(-1deg)}}
+
+/* ===== Balão de fala (mensagens) ===== */
+#msg{position:fixed;left:18px;bottom:34px;max-width:calc(100vw - 350px);font-size:17px;min-height:24px;z-index:5;border-radius:24px;background:#fff;padding:10px 18px}
+#msg::before{content:'';position:absolute;left:34px;bottom:-24px;border:14px solid transparent;border-top:20px solid var(--ink);border-bottom:0}
+#msg::after{content:'';position:absolute;left:37px;bottom:-15px;border:11px solid transparent;border-top:16px solid #fff;border-bottom:0}
+
+/* ===== Jogador da vez ===== */
+#tcard{position:fixed;right:14px;bottom:14px;display:flex;align-items:center;gap:12px;border:5px solid #ff2e4d;transition:border-color .3s;z-index:5;transform:rotate(1.5deg)}
+#tcard small{display:block;opacity:.7;font-size:12px}
+#tcard b{font-family:var(--tit);font-size:22px;letter-spacing:1px}
+#tname{word-break:break-word;max-width:200px;display:block}
+#avatar{width:84px;height:84px;border:4px solid var(--ink);border-radius:50%;overflow:hidden;background:#fff;box-shadow:0 0 0 4px currentColor;flex:none}
+#avatar img,#avatar svg{width:100%;height:100%;object-fit:cover;display:block}
+.pop{animation:pop .5s}
+@keyframes pop{0%{transform:scale(.7) rotate(-8deg)}60%{transform:scale(1.12) rotate(3deg)}100%{transform:scale(1) rotate(1.5deg)}}
+
+/* ===== Inventário ===== */
+#inv{position:fixed;right:14px;bottom:140px;z-index:5;padding:8px 10px;max-width:calc(100vw - 24px);background:var(--yellow)}
+#inv h4{margin:0 0 6px;font-family:var(--tit);font-size:17px;letter-spacing:1.5px;display:flex;justify-content:space-between;gap:12px;cursor:pointer;user-select:none;font-weight:400}
+#invT{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#inv.min #invSlots{display:none}
+#inv.min h4{margin-bottom:0}
+#invSlots{display:flex;gap:6px}
+.slot{--ic:#fff;width:76px;min-height:96px;border-radius:12px;border:3px solid var(--ink);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:4px 3px;text-align:center}
+.slot.vazio{border-style:dashed;opacity:.55;justify-content:center;font-size:11px;letter-spacing:1px;text-transform:uppercase}
+.slot.cheio{background:var(--ic);box-shadow:0 4px 0 var(--ink)}
+.slot .sic{font-size:28px;line-height:1.1}
+.slot .nm{font-size:10px;line-height:1.1;color:#fff;min-height:22px;display:flex;align-items:center;justify-content:center;text-shadow:-1px -1px 0 var(--ink),1px -1px 0 var(--ink),-1px 1px 0 var(--ink),1px 1px 0 var(--ink)}
+.slot button{padding:2px 6px;font-size:14px;width:100%;letter-spacing:.5px;border-radius:8px;border-width:3px;box-shadow:0 3px 0 var(--ink)}
+
+/* ===== Modais (setup / fim / itens / cartas) ===== */
+#setup,#modal,#im,#carta{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:12px;background:repeating-conic-gradient(rgba(255,212,0,.2) 0 5deg,rgba(20,18,43,.82) 5deg 10deg)}
+#setup{display:flex;z-index:20;background:repeating-conic-gradient(rgba(30,107,255,.5) 0 5deg,rgba(123,60,255,.7) 5deg 10deg)}
+#modal{z-index:10}#carta{z-index:12}#im{z-index:14}
+#setup .box,#modal .box,#im .box,#carta .cv{background:radial-gradient(rgba(20,18,43,.09) 1.6px,transparent 1.8px) 0 0/10px 10px,var(--paper);border:6px solid var(--ink);border-radius:26px;box-shadow:0 10px 0 var(--ink);text-align:center;color:var(--ink);max-height:92vh;overflow:auto;animation:slam .5s cubic-bezier(.2,1.3,.4,1)}
+#setup .box{width:min(94vw,460px);padding:22px 26px}
+#modal .box{padding:26px 34px;min-width:300px}
+#im .box{width:min(470px,94vw);padding:22px 26px}
+#carta .cv{width:min(450px,94vw);padding:22px 26px}
+@keyframes slam{0%{transform:scale(2.4) rotate(-12deg);opacity:0}55%{transform:scale(.92) rotate(2deg);opacity:1}80%{transform:scale(1.04) rotate(-1deg)}100%{transform:none;opacity:1}}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+#setup h2{margin:0 0 4px;font-family:var(--tit);font-weight:400;font-size:54px;letter-spacing:3px;color:var(--yellow);text-shadow:var(--so);transform:rotate(-3deg)}
+#setup p{margin:6px 0 14px;font-size:14px}
+.row{display:flex;align-items:center;gap:10px;margin:10px 0;text-align:left}
+.row .dot{width:32px;height:32px;border:3px solid var(--ink)}
+.row .f{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.row b{font-family:var(--tit);font-weight:400;font-size:17px;letter-spacing:1px}
+.row input{flex:1;min-width:0;padding:8px 12px;border-radius:12px;border:3px solid var(--ink);background:#fff;color:var(--ink);font:inherit}
+.row input:focus{outline:0;box-shadow:0 0 0 3px var(--yellow)}
+.av{display:flex;gap:6px;align-items:center}
+.av input:not([type=file]){flex:1;font-size:12px;padding:6px 8px}
+.row input[type=file]{flex:none;width:46%;padding:4px;border:3px dashed var(--ink);background:#fff3b0;font-size:11px}
+.th{width:40px;height:40px;border-radius:10px;border:3px solid var(--ink);object-fit:cover;display:none}
+.modot{font-family:var(--tit);font-size:20px;letter-spacing:1.5px;margin-top:8px;text-align:left}
+.modo{display:flex;gap:10px;margin-top:6px;text-align:left}
+.modo label{flex:1;display:flex;align-items:center;gap:8px;border:4px solid var(--ink);border-radius:14px;padding:8px 10px;background:#fff;cursor:pointer;font-size:15px;line-height:1.15;box-shadow:0 4px 0 var(--ink);transition:transform .15s}
+.modo label small{font-size:12px;font-weight:600;opacity:.75}
+.modo label:has(input:checked){background:var(--yellow);transform:rotate(-1.5deg) translateY(-2px)}
+.modo input{accent-color:var(--red);width:18px;height:18px;margin:0;flex:none}
+#setup button{margin-top:14px;width:100%;font-size:26px;background:var(--red);color:#fff;text-shadow:2px 2px 0 var(--ink)}
+#modal h2{margin:0 0 6px;font-family:var(--tit);font-weight:400;font-size:38px;letter-spacing:2px;color:var(--yellow);text-shadow:var(--so)}
+#rank{list-style:none;padding:0;margin:16px 0}
+#rank li{padding:6px 12px;margin:6px 0;border-radius:12px;background:#fff;border:3px solid var(--ink);display:flex;gap:10px;align-items:center;font-size:17px}
+#rank li .dot{width:22px;height:22px;border:2px solid var(--ink)}
+#rank li span:last-child{margin-left:auto;font-family:var(--tit);font-size:22px}
+#modal .box button+button{margin-left:8px;margin-top:6px;background:var(--blue);color:#fff;text-shadow:2px 2px 0 var(--ink)}
+
+#im .sel,#carta .sel{display:inline-block;background:var(--yellow);border:3px solid var(--ink);padding:3px 16px;border-radius:10px;font-family:var(--tit);font-size:19px;letter-spacing:2px;transform:rotate(-3deg);box-shadow:0 4px 0 var(--ink)}
+#im .bic,#carta .ic{font-size:56px;margin:8px 0 2px;line-height:1.2;animation:bob 1.1s ease-in-out infinite}
+#im h3,#carta h3{margin:4px 0 12px;font-family:var(--tit);font-weight:400;font-size:34px;letter-spacing:1.5px;line-height:1.1;color:#fff;text-shadow:var(--so)}
+#im .tx,#carta .tx{font-size:16px;line-height:1.45;text-align:left;white-space:pre-line;background:#fff;border:4px solid var(--ink);border-radius:20px;padding:12px 16px;margin:0 0 14px;box-shadow:0 4px 0 var(--ink)}
+#carta .li{font-size:14px;margin:0 0 12px;background:var(--yellow);border:3px solid var(--ink);border-radius:12px;padding:6px 10px;transform:rotate(-1deg)}
+#carta .pt{font-family:var(--tit);font-size:56px;letter-spacing:2px;margin:4px 0 12px;text-shadow:var(--so)}
+#carta.verde .cv{background:radial-gradient(rgba(20,18,43,.1) 1.6px,transparent 1.8px) 0 0/10px 10px,#c9ffd9}
+#carta.vermelho .cv{background:radial-gradient(rgba(20,18,43,.1) 1.6px,transparent 1.8px) 0 0/10px 10px,#ffd0d8}
+#carta.verde .sel{background:var(--green)}
+#carta.vermelho .sel{background:var(--red);color:#fff}
+#carta.verde .pt{color:#6bff9a}#carta.vermelho .pt{color:#ff6b83}
+#im .opts{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+#im .opts button{flex:1 1 150px;font-size:17px;padding:8px 12px;line-height:1.1}
+#im .opts button small{display:block;font-family:Fredoka,sans-serif;font-size:11px;opacity:.85;letter-spacing:0;margin-top:3px}
+#im .opts button.sec{background:#b9b6d6}
+
+/* ===== Camada de efeitos (VFX) ===== */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+.fxflash{position:absolute;inset:0;background:#fff;opacity:0;animation:fxflash .38s ease-out}
+@keyframes fxflash{0%{opacity:.9}100%{opacity:0}}
+.fxlines{position:absolute;left:50%;top:50%;width:300vmax;height:300vmax;margin:-150vmax 0 0 -150vmax;background:repeating-conic-gradient(var(--lc,#fff) 0 2.2deg,transparent 2.2deg 7deg);-webkit-mask-image:radial-gradient(circle,transparent 9%,#000 24%);mask-image:radial-gradient(circle,transparent 9%,#000 24%);opacity:0;animation:fxlines .8s ease-out}
+@keyframes fxlines{0%{opacity:0;transform:scale(.6)}20%{opacity:.85}100%{opacity:0;transform:scale(1.15) rotate(8deg)}}
+.fxtxt{position:absolute;left:50%;top:42%;font-family:var(--tit);font-size:clamp(54px,15vw,170px);letter-spacing:4px;line-height:1;color:var(--c,#fff);-webkit-text-stroke:10px var(--ink);paint-order:stroke fill;text-shadow:0 10px 0 var(--ink);white-space:nowrap;animation:fxtxt 1.1s cubic-bezier(.2,1.3,.4,1) forwards}
+@keyframes fxtxt{0%{transform:translate(-50%,-50%) scale(3.2) rotate(-14deg);opacity:0}22%{transform:translate(-50%,-50%) scale(.9) rotate(-6deg);opacity:1}38%{transform:translate(-50%,-50%) scale(1.1) rotate(-6deg)}50%{transform:translate(-50%,-50%) scale(1) rotate(-6deg)}82%{transform:translate(-50%,-50%) scale(1) rotate(-6deg);opacity:1}100%{transform:translate(-50%,-85%) scale(1.05) rotate(-6deg);opacity:0}}
+.fxstar{position:absolute;font-weight:700;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;pointer-events:none}
+.fxfloat{position:absolute;font-family:var(--tit);font-size:46px;letter-spacing:2px;-webkit-text-stroke:7px var(--ink);paint-order:stroke fill;text-shadow:0 5px 0 var(--ink);white-space:nowrap}
+
+@media(max-width:600px){
+  #ui{padding-right:64px}
+  #tcard b{font-size:16px}#avatar{width:52px;height:52px}
+  #msg{bottom:96px!important;max-width:calc(100vw - 28px)!important;font-size:15px}
+  #inv{bottom:170px;right:8px;padding:6px 8px}
+  .slot{width:calc((100vw - 62px)/4);max-width:76px;min-height:88px}#invT{max-width:150px}
+  #setup h2{font-size:42px}
+}
+@media(prefers-reduced-motion:reduce){#roll,#im .bic,#carta .ic{animation:none}}
+</style>
+</head>
+<body>
+<div id="fx"></div>
+<button id="mute" title="Som ligado/desligado (tecla M)" aria-label="Ligar ou desligar o som">🔊</button>
+<div id="ui">
+  <div class="panel" id="score"></div>
+  <div class="panel" id="ctrl">
+    <div><div id="dieval">Veredito: —</div><div id="hint"></div></div>
+    <button id="roll">Rolar Dado</button>
+  </div>
+</div>
+<div id="msg" class="panel">Bem-vindo! Jogador Vermelho começa.</div>
+<div id="tcard" class="panel">
+  <div id="avatar" style="color:#ff2e4d"><img id="avimg" alt="" style="display:none">
+    <svg id="avsvg" viewBox="0 0 64 64"><rect width="64" height="64" fill="currentColor" opacity=".55"/><path d="M4 64Q8 44 32 42Q56 44 60 64Z" fill="#1e6bff" stroke="#14122b" stroke-width="2.5"/><path d="M26 43L32 56L38 43Z" fill="#fff" stroke="#14122b" stroke-width="2"/><path d="M30 47h4l1.5 11-3.5 3-3.5-3z" fill="#ff2e4d" stroke="#14122b" stroke-width="1.5"/><circle cx="32" cy="27" r="13" fill="#ffd2a8" stroke="#14122b" stroke-width="2.5"/><path d="M18 26Q17 9 33 10Q48 10 46 26Q41 17 32 18Q24 18 18 26Z" fill="#2a1a12" stroke="#14122b" stroke-width="2"/><circle cx="27" cy="28" r="3.2" fill="#fff" stroke="#14122b" stroke-width="1.5"/><circle cx="37" cy="28" r="3.2" fill="#fff" stroke="#14122b" stroke-width="1.5"/><circle cx="27.8" cy="28.5" r="1.4" fill="#14122b"/><circle cx="37.8" cy="28.5" r="1.4" fill="#14122b"/><path d="M26 34Q32 40 38 34" fill="#fff" stroke="#14122b" stroke-width="2" stroke-linecap="round"/></svg></div>
+  <div><small>Na tribuna</small><b id="tname">Sua Vez: Jogador Vermelho</b></div>
+</div>
+<div class="panel" id="inv">
+  <h4 id="invH" title="Clique para recolher/expandir"><span id="invT">🎒 INVENTÁRIO</span><span id="invN">0/4</span></h4>
+  <div id="invSlots"></div>
+</div>
+<div id="im"><div class="box">
+  <div class="sel" id="imSel"></div><div class="bic" id="imIc"></div>
+  <h3 id="imTit"></h3><div class="tx" id="imTx"></div>
+  <div class="opts" id="imOpts"></div>
+</div></div>
+<div id="setup"><div class="box">
+  <h2>⚖️ Plenário 120</h2><p>Convoque os 4 jogadores: nome e retrato (opcionais). Em branco = nome padrão.</p>
+  <div id="rows"></div>
+  <div class="modot">Modo de partida</div>
+  <div class="modo">
+    <label><input type="radio" name="modo" value="120" checked><span>🏛️ Normal<br><small>120 casas</small></span></label>
+    <label><input type="radio" name="modo" value="60"><span>⚡ Rápido<br><small>60 casas</small></span></label>
+  </div>
+  <button id="start">Iniciar Sessão!</button>
+</div></div>
+<div id="carta"><div class="cv">
+  <div class="sel" id="cSelo"></div><div class="ic" id="cIc"></div>
+  <h3 id="cTit"></h3><div class="tx" id="cTx"></div><div class="li" id="cLi"></div>
+  <div class="pt" id="cPt"></div>
+  <button id="cOk">Compreender Impacto</button>
+</div></div>
+<div id="modal"><div class="box">
+  <h2 id="winner"></h2><div>Placar do Julgamento</div>
+  <ul id="rank"></ul>
+  <button id="again">Nova Sessão (mesmos nomes)</button><button id="rename" class="protest">Protesto! Novo cadastro</button>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js" onerror="void 0"></script>
+<script>
+const SP = 2.2;
+let FIM = 120, COLS = 11, ROWS = 11;   // alterados pelo modo de partida (120 ou 60 casas)
+const MODOS = {120:{fim:120, cols:11}, 60:{fim:60, cols:8}};
+function aplicarModo(m) {const c = MODOS[m] || MODOS[120]; FIM = c.fim; COLS = c.cols; ROWS = Math.ceil((FIM + 1)/COLS);}
+const PLAYERS = [
+  {nome:'Vermelho', cor:0xff2e4d, css:'#ff2e4d'},
+  {nome:'Verde',    cor:0x22d65f, css:'#22d65f'},
+  {nome:'Azul',     cor:0x1e6bff, css:'#1e6bff'},
+  {nome:'Amarelo',  cor:0xffd400, css:'#ffd400'}
+];
+const HAIRS = [0x2a1a12, 0xd9822b, 0x1b1b1b, 0x8b4a1f];
+const OFF = [[-.45,-.45],[.45,-.45],[-.45,.45],[.45,.45]];
+const INK = 0x14122b;
+
+const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const REDUZ = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// =====================================================================
+//  ÁUDIO: trilha chiptune em loop + efeitos (Web Audio, tudo sintetizado)
+//  Melodia original, no estilo enérgico/dramático de jogos de tribunal.
+// =====================================================================
+const AUD = (() => {
+  let ctx = null, master, mus, sfxG, noiseBuf, step = 0, next = 0, muted = false;
+  try { muted = localStorage.getItem('p120mute') === '1'; } catch (e) {}
+  const BPM = 152, ST = 60 / BPM / 4;
+  const fr = m => 440 * Math.pow(2, (m - 69) / 12);
+  // 8 compassos: Dm | Bb | C | A  ||  Gm | Dm | Bb | A
+  const CH   = [[62,65,69,74],[58,62,65,70],[60,64,67,72],[57,61,64,69],[55,58,62,67],[62,65,69,74],[58,62,65,70],[57,61,64,69]];
+  const ROOT = [38,34,36,33,31,38,34,33];
+  const LEAD = [ // por compasso: [passo(0-15), nota MIDI, duração em passos]
+    [[0,74,2],[2,77,2],[4,76,1],[5,74,1],[6,72,2],[8,74,4],[12,69,2],[14,72,2]],
+    [[0,70,2],[2,74,2],[4,72,1],[5,70,1],[6,69,2],[8,70,4],[12,65,2],[14,69,2]],
+    [[0,72,2],[2,76,2],[4,74,1],[5,72,1],[6,67,2],[8,72,4],[12,67,2],[14,71,2]],
+    [[0,73,2],[2,76,2],[4,73,2],[6,69,2],[8,73,3],[11,76,1],[12,77,2],[14,76,2]],
+    [[0,79,2],[2,77,2],[4,74,2],[6,70,2],[8,74,2],[10,77,2],[12,79,4]],
+    [[0,77,2],[2,74,2],[4,69,2],[6,74,2],[8,77,4],[12,76,2],[14,74,2]],
+    [[0,74,2],[2,70,2],[4,74,2],[6,77,2],[8,77,4],[12,74,2],[14,70,2]],
+    [[0,73,1],[1,74,1],[2,76,2],[4,77,2],[6,76,2],[8,73,2],[10,69,2],[12,73,2],[14,76,2]]
+  ];
+  const leadAt = {};
+  LEAD.forEach((bar, b) => bar.forEach(([s, n, l]) => leadAt[b*16 + s] = [n, l]));
+
+  function init() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    ctx = new AC();
+    const comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination);
+    master = ctx.createGain(); master.gain.value = muted ? 0 : .85; master.connect(comp);
+    mus = ctx.createGain(); mus.gain.value = .38; mus.connect(master);
+    sfxG = ctx.createGain(); sfxG.gain.value = .9; sfxG.connect(master);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
+    next = ctx.currentTime + .1;
+    setInterval(sched, 30);
+  }
+  function tone(f, t, d, o = {}) {
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = o.type || 'square';
+    osc.frequency.setValueAtTime(f, t);
+    if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + d);
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.linearRampToValueAtTime(o.vol ?? .2, t + (o.a || .005));
+    g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    osc.connect(g); g.connect(o.dest || sfxG);
+    osc.start(t); osc.stop(t + d + .03);
+  }
+  function noise(t, d, o = {}) {
+    const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+    const f = ctx.createBiquadFilter(); f.type = o.type || 'highpass';
+    f.frequency.setValueAtTime(o.f || 4000, t);
+    if (o.to) f.frequency.exponentialRampToValueAtTime(o.to, t + d);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(o.vol ?? .2, t);
+    g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    s.connect(f); f.connect(g); g.connect(o.dest || sfxG);
+    s.start(t, Math.random()*.5); s.stop(t + d + .03);
+  }
+  const kick  = t => tone(160, t, .16, {type:'sine', to:42, vol:.9, dest:mus});
+  const snare = t => {noise(t, .12, {f:1500, type:'bandpass', vol:.32, dest:mus}); tone(220, t, .08, {type:'triangle', to:120, vol:.15, dest:mus});};
+  const hat   = (t, d) => noise(t, d, {f:7500, vol:.1, dest:mus});
+
+  function playStep(s, t) {
+    const bar = Math.floor(s/16) % 8, st = s % 16;
+    const L = leadAt[bar*16 + st];
+    if (L) tone(fr(L[0]), t, L[1]*ST*.9, {type:'square', vol:.11, dest:mus});
+    tone(fr(CH[bar][st % 4]), t, ST*.8, {type:'square', vol:.035, dest:mus, a:.002});   // arpejo
+    if (st % 2 === 0) tone(fr(ROOT[bar] + ((st/2) % 4 === 2 ? 12 : 0)), t, ST*1.7, {type:'triangle', vol:.34, dest:mus}); // baixo
+    if (st === 0 || st === 6 || st === 8 || st === 14) kick(t);
+    if (st === 4 || st === 12 || (bar % 4 === 3 && st >= 13)) snare(t);
+    if (st % 2 === 0) hat(t, st === 14 ? .08 : .035);
+  }
+  function sched() {
+    if (!ctx) return;
+    if (next < ctx.currentTime - .3) next = ctx.currentTime + .05;
+    while (next < ctx.currentTime + .18) { playStep(step, next); next += ST; step = (step + 1) % 128; }
+  }
+  const T = () => ctx.currentTime;
+  const S = {
+    clack()  {const t = T(); noise(t, .05, {f:2500, type:'bandpass', vol:.35}); tone(260, t, .06, {to:120, vol:.12});},
+    dado()   {const t = T(); noise(t, .7, {f:600, to:3500, type:'bandpass', vol:.18}); for (let i = 0; i < 8; i++) noise(t + .1 + i*.1, .03, {f:3500, vol:.1});},
+    veredito(){const t = T(); tone(660, t, .08, {vol:.16}); tone(990, t + .08, .18, {vol:.16});},
+    pulo()   {tone(280, T(), .13, {type:'sine', to:640, vol:.25});},
+    pouso()  {tone(200, T(), .09, {type:'triangle', to:90, vol:.32});},
+    modal()  {const t = T(); tone(520, t, .07, {vol:.12}); tone(780, t + .06, .1, {vol:.12});},
+    prova()  {[523,659,784,1047].forEach((f, i) => tone(f, T() + i*.07, .14, {vol:.16}));},
+    objecao(){const t = T(); noise(t, .3, {f:900, vol:.4}); [349,440,523].forEach(f => tone(f, t, .3, {type:'sawtooth', vol:.1})); tone(262, t + .12, .35, {vol:.12});},
+    ganha()  {const t = T(); tone(988, t, .07, {vol:.17}); tone(1319, t + .07, .28, {vol:.17});},
+    perde()  {tone(420, T(), .4, {type:'sawtooth', to:110, vol:.16});},
+    desmaio(){const t = T(); tone(900, t, .55, {type:'sine', to:140, vol:.2}); tone(120, t + .55, .18, {type:'sine', to:40, vol:.6}); noise(t + .55, .14, {f:900, type:'lowpass', vol:.3});},
+    item()   {[659,784,988,1175,1568].forEach((f, i) => tone(f, T() + i*.05, .12, {type:'triangle', vol:.2}));},
+    duplo()  {const t = T(); [523,523,784].forEach((f, i) => tone(f, t + i*.08, .09, {vol:.15}));},
+    foguete(){const t = T(); noise(t, 1.2, {f:250, to:3000, type:'lowpass', vol:.35}); tone(110, t, 1.2, {type:'sawtooth', to:900, vol:.1});},
+    boom()   {const t = T(); noise(t, .6, {f:2500, to:150, type:'lowpass', vol:.5}); tone(110, t, .5, {type:'sine', to:30, vol:.7});},
+    roubo()  {const t = T(); [392,330,262,330].forEach((f, i) => tone(f, t + i*.09, .12, {vol:.14}));},
+    acerto() {const t = T(); tone(880, t, .1, {type:'triangle', vol:.22}); tone(1318, t + .1, .3, {type:'triangle', vol:.22});},
+    erro()   {const t = T(); tone(180, t, .18, {type:'sawtooth', vol:.16}); tone(140, t + .18, .3, {type:'sawtooth', vol:.16});},
+    vitoria(){const t = T(); [[523,0,.12],[659,.13,.12],[784,.26,.12],[1047,.39,.6],[784,.39,.6],[659,.39,.6]].forEach(([f, d, l]) => tone(f, t + d, l, {type:'square', vol:.15}));}
+  };
+  const api = {
+    init,
+    toggle() {
+      muted = !muted;
+      try { localStorage.setItem('p120mute', muted ? '1' : '0'); } catch (e) {}
+      if (ctx) master.gain.setTargetAtTime(muted ? 0 : .85, ctx.currentTime, .03);
+      return muted;
+    },
+    isMuted: () => muted,
+    duck(on) { if (ctx) mus.gain.setTargetAtTime(on ? .1 : .38, ctx.currentTime, .2); },
+    vis(hidden) { if (ctx) hidden ? ctx.suspend() : ctx.resume(); }
+  };
+  for (const k in S) api[k] = (...a) => { if (ctx) S[k](...a); };
+  return api;
+})();
+
+// =====================================================================
+//  CENA 3D (estilo cartoon: MeshToonMaterial + contornos + cores vivas)
+// =====================================================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9fe3ff);
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 200);
+camera.position.set(0, 20, 20);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+// gradiente de 4 tons = sombreamento "em degraus" (cel shading)
+const gradTex = (() => {
+  const fmt = renderer.capabilities.isWebGL2 ? THREE.RedFormat : THREE.LuminanceFormat;
+  const t = new THREE.DataTexture(new Uint8Array([70, 140, 210, 255]), 4, 1, fmt);
+  t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true; return t;
+})();
+const toon = c => new THREE.MeshToonMaterial({color:c, gradientMap:gradTex});
+const inkMat = new THREE.MeshBasicMaterial({color:INK, side:THREE.BackSide});
+const inkFront = new THREE.MeshBasicMaterial({color:INK});
+const ol = (m, s = 1.14) => {const o = new THREE.Mesh(m.geometry, inkMat); o.scale.setScalar(s); m.add(o); return m;}; // contorno (casco invertido)
+
+scene.add(new THREE.AmbientLight(0xffffff, .72));
+const sun = new THREE.DirectionalLight(0xffffff, .85);
+sun.position.set(10, 25, 12);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, {left:-20, right:20, top:20, bottom:-20, near:1, far:70});
+scene.add(sun);
+
+const mk = (geo, mat, x, y, z) => {const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; scene.add(m); return m;};
+const B = (w, h, d, col, x, y, z, hull = true) => {
+  const m = mk(new THREE.BoxGeometry(w, h, d), toon(col), x, y, z);
+  if (hull) m.add(new THREE.Mesh(new THREE.BoxGeometry(w + .22, h + .22, d + .22), inkMat));
+  return m;
+};
+function checkTex(c1, c2, n) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const g = cv.getContext('2d'); g.fillStyle = c1; g.fillRect(0, 0, 128, 128); g.fillStyle = c2; g.fillRect(0, 0, 64, 64); g.fillRect(64, 64, 64, 64);
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(n, n); return t;
+}
+function dotsTex(bg, dot, nx, ny) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const g = cv.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, 64, 64); g.fillStyle = dot; g.beginPath(); g.arc(32, 32, 11, 0, 7); g.fill();
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(nx, ny); return t;
+}
+
+// personagem cartoon (usado em peões, juiz e plateia)
+function makeChar(bodyCol, o = {}) {
+  const g = new THREE.Group();
+  const part = (geo, col, x, y, z, hull = 1.14) => {
+    const m = new THREE.Mesh(geo, toon(col)); m.position.set(x, y, z); m.castShadow = true;
+    if (hull) ol(m, hull); g.add(m); return m;
+  };
+  part(new THREE.CylinderGeometry(.2, .28, .44, 20), bodyCol, 0, .3, 0);
+  part(new THREE.SphereGeometry(.25, 24, 18), 0xffd2a8, 0, .78, 0);
+  [-.095, .095].forEach(x => {
+    part(new THREE.SphereGeometry(.07, 12, 10), 0xffffff, x, .8, .2, 0);
+    part(new THREE.SphereGeometry(.035, 10, 8), INK, x, .8, .263, 0);
+  });
+  if (o.wig) { // peruca de juiz
+    part(new THREE.SphereGeometry(.3, 24, 14, 0, Math.PI*2, 0, Math.PI*.62), 0xffffff, 0, .78, -.02).rotation.x = -.25;
+    [-1, 1].forEach(s => part(new THREE.SphereGeometry(.11, 12, 10), 0xffffff, s*.27, .62, -.02));
+  } else {
+    part(new THREE.SphereGeometry(.27, 24, 14, 0, Math.PI*2, 0, Math.PI*.52), o.hair ?? 0x3b2a1a, 0, .79, 0).rotation.x = -.4;
+  }
+  return g;
+}
+
+// ---------- Tribunal (cenário cartoon) ----------
+const floor = mk(new THREE.PlaneGeometry(120, 120), new THREE.MeshToonMaterial({map:checkTex('#ffe066', '#ffb347', 15), gradientMap:gradTex}), 0, -0.5, 0);
+floor.rotation.x = -Math.PI/2; floor.castShadow = false;
+const wall = (tex, x, z, ry) => {const m = mk(new THREE.PlaneGeometry(80, 34), new THREE.MeshToonMaterial({map:tex, gradientMap:gradTex}), x, 16, z); m.rotation.y = ry; m.castShadow = false;};
+wall(dotsTex('#2f7bff', '#5b9bff', 16, 7), 0, -38, 0);
+wall(dotsTex('#8a5cff', '#a784ff', 16, 7), -38, 0, Math.PI/2);
+wall(dotsTex('#8a5cff', '#a784ff', 16, 7), 38, 0, -Math.PI/2);
+B(80, 5, .5, 0xff7a1a, 0, 2, -37.7, false); B(.5, 5, 80, 0xff7a1a, -37.7, 2, 0, false); B(.5, 5, 80, 0xff7a1a, 37.7, 2, 0, false);
+B(80, .5, .7, 0xffd400, 0, 4.6, -37.6, false); B(.7, .5, 80, 0xffd400, -37.6, 4.6, 0, false); B(.7, .5, 80, 0xffd400, 37.6, 4.6, 0, false);
+[-30, 30].forEach(x => {B(6, 28, 1, 0xff2e4d, x, 14, -36.8, false); B(6.8, .8, 1.4, 0xffd400, x, 28, -36.8, false);});
+// emblema da justiça
+const em = document.createElement('canvas'); em.width = em.height = 256; const eg = em.getContext('2d');
+eg.fillStyle = '#14122b'; eg.beginPath(); eg.arc(128, 128, 126, 0, 7); eg.fill();
+eg.fillStyle = '#ffd400'; eg.beginPath(); eg.arc(128, 128, 114, 0, 7); eg.fill();
+eg.fillStyle = '#1e6bff'; eg.beginPath(); eg.arc(128, 128, 92, 0, 7); eg.fill();
+eg.fillStyle = '#fff'; eg.font = 'bold 120px serif'; eg.textAlign = 'center'; eg.fillText('⚖', 128, 168);
+mk(new THREE.PlaneGeometry(9, 9), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(em), transparent:true}), 0, 15, -37.8).castShadow = false;
+// bancada do juiz + chefe supremo
+B(18, 3, 4, 0xff7a1a, 0, 1, -30); B(18.6, .3, 4.6, 0xffd400, 0, 2.65, -30); B(18, .4, .1, 0xffd400, 0, 1.2, -27.95, false);
+B(3, 5, 1, 0x7b3cff, 0, 5, -32);
+const juiz = makeChar(0x14122b, {wig:true}); juiz.position.set(0, 2.8, -30.4); juiz.scale.setScalar(3.2); scene.add(juiz);
+// mesas da defesa (azul) e da acusação (vermelho)
+[[-12, 0x1e6bff], [12, 0xff2e4d]].forEach(([x, c]) => {
+  B(9, 1.6, 2.8, c, x, .3, -19); B(9.4, .2, 3.2, 0xffd400, x, 1.2, -19); B(4, 1, .1, 0xffffff, x, .4, -17.55, false);
+});
+// arquibancadas laterais com plateia animada
+const crowd = [], CROWD_COL = [0xff2e4d, 0x22d65f, 0x1e6bff, 0xffd400, 0xff7a1a, 0x7b3cff, 0xff6bd6, 0x00c2c7];
+[-1, 1].forEach(side => {
+  B(4, 1.2, 22, 0x2f7bff, side*20.5, .1, -4); B(4, 2.4, 22, 0x1e56c9, side*24.5, .7, -4);
+  for (let r = 0; r < 2; r++) for (let i = 0; i < 6; i++) {
+    const c = makeChar(CROWD_COL[(i*3 + r*5 + (side > 0 ? 2 : 0)) % CROWD_COL.length], {hair:HAIRS[(i + r) % 4]});
+    c.scale.setScalar(1.7);
+    c.position.set(side*(20.5 + r*4), r ? 1.9 : .7, -13 + i*4.4);
+    c.rotation.y = side > 0 ? -Math.PI/2 : Math.PI/2;
+    scene.add(c); crowd.push({g:c, y:c.position.y, ph:Math.random()*6.28});
+  }
+});
+let baseObjs = [];
+function buildBase() {
+  baseObjs.forEach(o => scene.remove(o)); baseObjs = [];
+  const W = COLS*SP, D = ROWS*SP;
+  const base = new THREE.Mesh(new THREE.BoxGeometry(W + 1.5, 0.4, D + 1.5), toon(0x7b3cff));
+  base.position.y = -0.3; base.receiveShadow = true; base.add(new THREE.Mesh(new THREE.BoxGeometry(W + 1.9, .6, D + 1.9), inkMat)); scene.add(base);
+  baseObjs.push(base, B(W + 2.6, .3, D + 2.6, 0xffd400, 0, -.45, 0));
+}
+const lamp = new THREE.PointLight(0xfff0c0, .45, 90); lamp.position.set(0, 14, -24); scene.add(lamp);
+let crowdBoost = 0;
+
+// ---------- Controles ----------
+let controls = null, orb = {th:0, ph:1.0, r:28, tgt:new THREE.Vector3()};
+if (THREE.OrbitControls) {
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.maxPolarAngle = Math.PI/2.05;
+  controls.minDistance = 8; controls.maxDistance = 45;
+} else { // fallback simples caso o OrbitControls não carregue
+  let drag = false, lx = 0, ly = 0;
+  const el = renderer.domElement;
+  el.addEventListener('pointerdown', e => {drag = true; lx = e.clientX; ly = e.clientY;});
+  addEventListener('pointerup', () => drag = false);
+  addEventListener('pointermove', e => {
+    if (!drag) return;
+    orb.th -= (e.clientX-lx)*0.006; orb.ph = Math.min(1.5, Math.max(0.15, orb.ph-(e.clientY-ly)*0.006));
+    lx = e.clientX; ly = e.clientY;
+  });
+  el.addEventListener('wheel', e => {orb.r = Math.min(60, Math.max(8, orb.r*(1+Math.sign(e.deltaY)*0.08)));}, {passive:true});
+}
+function updateCam() {
+  if (controls) return controls.update();
+  camera.position.set(orb.r*Math.sin(orb.ph)*Math.sin(orb.th), orb.r*Math.cos(orb.ph), orb.r*Math.sin(orb.ph)*Math.cos(orb.th));
+  camera.lookAt(orb.tgt);
+}
+
+// ---------- Partículas 3D ----------
+const parts = [], partGeo = new THREE.OctahedronGeometry(.13), partMats = {};
+function burst3D(pos, cor, n = 10, forca = 3.5) {
+  const mat = partMats[cor] || (partMats[cor] = new THREE.MeshBasicMaterial({color:cor}));
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.Mesh(partGeo, mat); m.position.copy(pos); scene.add(m);
+    const a = Math.random()*Math.PI*2, f = forca*(.4 + Math.random()*.8);
+    parts.push({m, v:new THREE.Vector3(Math.cos(a)*f, forca*(.6 + Math.random()*.9), Math.sin(a)*f), life:0, max:.55 + Math.random()*.45});
+  }
+}
+
+// ---------- Tabuleiro ----------
+const tiles = [], tileObjs = [];   // tiles: {tipo, valor}
+let tileGroup = new THREE.Group(); scene.add(tileGroup);
+
+function tilePos(i) {
+  const r = Math.floor(i/COLS); let c = i % COLS;
+  if (r % 2 === 1) c = COLS-1-c;
+  return new THREE.Vector3((c-(COLS-1)/2)*SP, 0.15, (r-(ROWS-1)/2)*SP);
+}
+function label(txt, sub, dark) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const g = cv.getContext('2d');
+  g.textAlign = 'center'; g.lineJoin = 'round'; g.lineWidth = 9;
+  g.fillStyle = dark ? '#14122b' : '#fff'; g.strokeStyle = dark ? '#fff' : '#14122b';
+  g.font = `bold ${txt.length > 3 ? 30 : 46}px "Arial Black",Arial`;
+  g.strokeText(txt, 64, sub ? 58 : 76); g.fillText(txt, 64, sub ? 58 : 76);
+  if (sub) { g.font = 'bold 38px "Arial Black",Arial'; g.strokeText(sub, 64, 106); g.fillText(sub, 64, 106); }
+  return new THREE.CanvasTexture(cv);
+}
+function buildBoard() {
+  buildBase();
+  scene.remove(tileGroup); tileGroup = new THREE.Group(); scene.add(tileGroup); tiles.length = 0; tileObjs.length = 0;
+  for (let i = 0; i <= FIM; i++) {
+    let tipo = 'branco', valor = 0;
+    if (i > 0 && i < FIM) {
+      const rnd = Math.random();
+      if (rnd < 0.35) {tipo = 'verde'; valor = (1+Math.floor(Math.random()*5))*10;}
+      else if (rnd < 0.65) {tipo = 'vermelho'; valor = -(1+Math.floor(Math.random()*3))*10;}
+    } else tipo = 'especial';
+    tiles.push({tipo, valor});
+    const cor = {verde:0x22d65f, vermelho:0xff2e4d, branco:0xfff4c2, especial:0xffd400}[tipo];
+    const p = tilePos(i), g = new THREE.Group(); g.position.set(p.x, 0, p.z);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(SP-0.15, 0.3, SP-0.15), toon(cor)); m.receiveShadow = true; g.add(m);
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(SP+0.05, 0.3, SP+0.05), inkFront); rim.position.y = -.02; g.add(rim); // borda grossa de tinta
+    const txt = i === 0 ? 'INÍCIO' : i === FIM ? 'FIM' : String(i);
+    const sub = valor ? (valor > 0 ? '+' : '') + valor : '';
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8),
+      new THREE.MeshBasicMaterial({map:label(txt, sub, tipo === 'branco' || tipo === 'especial'), transparent:true}));
+    pl.rotation.x = -Math.PI/2; pl.position.set(0, 0.16, 0); g.add(pl);
+    tileGroup.add(g); tileObjs.push(g);
+  }
+}
+const tileDip = i => {if (tileObjs[i]) tileObjs[i].userData.dip = performance.now();};
+
+// ---------- Peões ----------
+const pawns = [];
+function buildPawns() {
+  pawns.forEach(p => scene.remove(p.mesh)); pawns.length = 0;
+  PLAYERS.forEach((pl, k) => {
+    const g = new THREE.Group();
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(.38, .4, .12, 24), toon(0xffd400)); disc.position.y = .06; disc.castShadow = true; ol(disc, 1.12);
+    const ch = makeChar(pl.cor, {hair:HAIRS[k]}); ch.position.y = .1;
+    g.add(disc, ch);
+    g.position.copy(pawnPos(0, k)); scene.add(g);
+    pawns.push({mesh:g, pos:0, pts:0});
+  });
+}
+function pawnPos(i, k) {
+  const p = tilePos(i);
+  return new THREE.Vector3(p.x + OFF[k][0]*SP/2.2, p.y, p.z + OFF[k][1]*SP/2.2);
+}
+// caminhada cômica: saltitos desengonçados, balanço lateral exagerado, giro de cabeça e pouso achatado
+function hop(mesh, from, to, alt = 1.1) {
+  return new Promise(res => {
+    mesh.userData.spring = null; AUD.pulo();
+    const lado = mesh.userData.lado = -(mesh.userData.lado || 1);   // alterna esquerda/direita a cada passo
+    const h = alt*(1.15 + Math.random()*.5), amp = .45 + Math.random()*.25;
+    const t0 = performance.now(), d = 430;
+    (function f(now) {
+      const t = Math.min(1, (now - t0)/d), arc = Math.sin(Math.PI*t);
+      mesh.position.lerpVectors(from, to, t);
+      mesh.position.y += arc*h;
+      // ginga: tomba pro lado, inclina pra frente/trás e gira de leve
+      mesh.rotation.z = lado*amp*Math.sin(Math.PI*t);
+      mesh.rotation.x = .3*Math.sin(2*Math.PI*t);
+      mesh.rotation.y = lado*.5*Math.sin(Math.PI*t) + (t < .5 ? 0 : -lado*.25*Math.sin(2*Math.PI*(t - .5)));
+      // estica no ar, agacha antes de saltar e achata ao pousar
+      const agacha = t < .15 ? Math.sin(t/.15*Math.PI/2)*.28 : 0;
+      const st = arc*.42, sq = t > .8 ? (t - .8)/.2*.42 : 0;
+      mesh.scale.set(1 - st*.4 + sq*.7 + agacha*.5, 1 + st - sq - agacha, 1 - st*.4 + sq*.7 + agacha*.5);
+      if (t < 1) requestAnimationFrame(f);
+      else {
+        mesh.rotation.set(0, 0, 0);
+        mesh.position.copy(to); mesh.userData.spring = performance.now(); AUD.pouso();
+        burst3D(new THREE.Vector3(to.x, to.y + .05, to.z), 0xffffff, 4, 1.8); res();
+      }
+    })(t0);
+  });
+}
+// ---------- Desmaio (casa vermelha): tomba girando, fica tonto no chão e se levanta cambaleando ----------
+const bounceOut = t => {const n = 7.5625, d = 2.75;
+  if (t < 1/d) return n*t*t; if (t < 2/d) return n*(t -= 1.5/d)*t + .75;
+  if (t < 2.5/d) return n*(t -= 2.25/d)*t + .9375; return n*(t -= 2.625/d)*t + .984375;};
+function cair(mesh, k) {
+  return new Promise(res => {
+    mesh.userData.spring = null; AUD.desmaio();
+    const ch = mesh.children[1], dir = k % 2 ? 1 : -1, t0 = performance.now(), d = 650;
+    mesh.userData.dir = dir; mesh.scale.set(1, 1, 1);
+    (function f(now) {
+      const t = Math.min(1, (now - t0)/d), e = bounceOut(t);
+      ch.rotation.z = dir*Math.PI/2*e;
+      ch.rotation.y = (1 - t)*Math.PI*4*dir;            // rodopia antes de cair
+      ch.position.set(dir*.5*e, .1 + .26*e + Math.sin(Math.PI*t)*.5*(1 - t), 0);
+      mesh.scale.set(1 + .25*e, 1 - .1*e, 1 + .25*e);
+      if (t < 1) return requestAnimationFrame(f);
+      ch.rotation.y = 0; mesh.scale.set(1, 1, 1);
+      burst3D(mesh.position.clone().setY(.4), 0xffffff, 8, 2.5); fxShake(5, 250);
+      // estrelinhas de tontura girando sobre a cabeça enquanto estiver no chão
+      clearInterval(mesh.userData.tonto);
+      mesh.userData.tonto = setInterval(() => {
+        burst3D(mesh.position.clone().add(new THREE.Vector3(-dir*.5, 1.25, 0)), 0xffd400, 3, 1.4);
+      }, 260);
+      const sp = toScreen(mesh.position.clone().add(new THREE.Vector3(-dir*.5, 1.6, 0)));
+      fxFloat('💫', '#ffd400', sp.x, sp.y);
+      res();
+    })(t0);
+  });
+}
+function levantar(mesh) {
+  return new Promise(res => {
+    clearInterval(mesh.userData.tonto);
+    const ch = mesh.children[1], dir = mesh.userData.dir || 1, t0 = performance.now(), d = 800; AUD.pulo();
+    (function f(now) {
+      const t = Math.min(1, (now - t0)/d), e = t*t*(3 - 2*t);
+      ch.rotation.z = dir*Math.PI/2*(1 - e) + Math.sin(t*Math.PI*4)*.22*(1 - t);   // cambaleia ao levantar
+      ch.position.set(dir*.5*(1 - e), .1 + .26*(1 - e), 0);
+      const up = Math.sin(Math.PI*t)*.15;
+      mesh.scale.set(1 - up*.5, 1 + up, 1 - up*.5);
+      if (t < 1) return requestAnimationFrame(f);
+      ch.rotation.set(0, 0, 0); ch.position.set(0, .1, 0);
+      mesh.scale.set(1, 1, 1); mesh.userData.spring = performance.now(); AUD.pouso();
+      burst3D(mesh.position.clone().setY(.4), 0xffffff, 5, 2); res();
+    })(t0);
+  });
+}
+// voo do Foguete de Campanha: um arco enorme até a casa de destino
+function voar(mesh, from, to) {
+  return new Promise(res => {
+    mesh.userData.spring = null; AUD.foguete();
+    const t0 = performance.now(), d = 1300; let last = 0;
+    (function f(now) {
+      const t = Math.min(1, (now - t0)/d), te = t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2, arc = Math.sin(Math.PI*t);
+      mesh.position.lerpVectors(from, to, te);
+      mesh.position.y += arc*9;
+      mesh.rotation.y = t*Math.PI*6;
+      mesh.scale.set(1 - arc*.25, 1 + arc*.5, 1 - arc*.25);
+      if (now - last > 45) {last = now; burst3D(mesh.position.clone(), Math.random() < .5 ? 0xff7a1a : 0xffd400, 2, 1.2);}
+      if (t < 1) requestAnimationFrame(f);
+      else {mesh.rotation.y = 0; mesh.position.copy(to); mesh.userData.spring = performance.now(); res();}
+    })(t0);
+  });
+}
+
+// ---------- Dado 3D ----------
+function faceTex(n) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#14122b'; g.fillRect(0, 0, 128, 128);
+  g.fillStyle = '#fff8e1'; g.beginPath(); g.roundRect ? g.roundRect(8, 8, 112, 112, 22) : g.rect(8, 8, 112, 112); g.fill();
+  const P = {1:[[1,1]],2:[[0,0],[2,2]],3:[[0,0],[1,1],[2,2]],4:[[0,0],[2,0],[0,2],[2,2]],
+             5:[[0,0],[2,0],[1,1],[0,2],[2,2]],6:[[0,0],[2,0],[0,1],[2,1],[0,2],[2,2]]};
+  g.fillStyle = ['#ff2e4d','#1e6bff','#22b957','#ff7a1a','#7b3cff','#ff2e4d'][n - 1];
+  P[n].forEach(([x, y]) => {g.beginPath(); g.arc(32+x*32, 32+y*32, n === 1 ? 17 : 11, 0, 7); g.fill();});
+  return new THREE.CanvasTexture(cv);
+}
+// ordem das faces do BoxGeometry: +x,-x,+y,-y,+z,-z (opostas somam 7)
+const die = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5),
+  [3,4,1,6,2,5].map(n => new THREE.MeshToonMaterial({map:faceTex(n), gradientMap:gradTex})));
+die.castShadow = true; die.visible = false; die.position.set(0, 0.85, 0); ol(die, 1.07); scene.add(die);
+const die2 = new THREE.Mesh(die.geometry, die.material); // segundo dado (item Dado Duplo)
+die2.castShadow = true; die2.visible = false; die2.position.set(0, 0.85, 0); ol(die2, 1.07); scene.add(die2);
+const FACE_EULER = {1:[0,0,0], 6:[Math.PI,0,0], 3:[0,0,Math.PI/2], 4:[0,0,-Math.PI/2], 2:[-Math.PI/2,0,0], 5:[Math.PI/2,0,0]};
+function popScale(mesh, ms = 240) {
+  return new Promise(res => {
+    const t0 = performance.now();
+    (function f(now) {
+      const t = Math.min(1, (now - t0)/ms);
+      mesh.scale.setScalar(1 + .3*Math.sin(Math.PI*t));
+      if (t < 1) requestAnimationFrame(f); else {mesh.scale.setScalar(1); res();}
+    })(t0);
+  });
+}
+// queda de grande altura, quiques sucessivos e giro rápido que desacelera
+function rolarDado(v, mesh = die, ox = 0, texto = true) {
+  return new Promise(res => {
+    const V = THREE.Vector3, Q = THREE.Quaternion;
+    const fin = new Q().setFromAxisAngle(new V(0,1,0), Math.random()*6.28)
+      .multiply(new Q().setFromEuler(new THREE.Euler(...FACE_EULER[v])));
+    const a1 = new V(Math.random()-.5, 1, Math.random()-.5).normalize();
+    const a2 = new V(1, Math.random()-.5, Math.random()-.5).normalize();
+    const x0 = ox ? ox + (Math.random()-.5)*.8 : (Math.random()-.5)*4, z0 = (Math.random()-.5)*(ox ? 2 : 4);
+    mesh.scale.setScalar(1); mesh.visible = true;
+    const t0 = performance.now(), d = 2000, H = 8.5, BN = 3.5; let lastB = 0;
+    (function f(now) {
+      const t = Math.min(1, (now - t0)/d), e = (1-t)*(1-t), h = Math.abs(Math.cos(t*Math.PI*BN));
+      mesh.position.set(x0*t, .85 + H*h*e, z0*t);
+      mesh.quaternion.copy(new Q().setFromAxisAngle(a1, e*10*Math.PI))
+        .multiply(new Q().setFromAxisAngle(a2, e*7*Math.PI)).multiply(fin);
+      const b = Math.floor(t*BN + .5);
+      if (b > lastB && t < 1) {lastB = b; AUD.clack(); burst3D(new THREE.Vector3(mesh.position.x, .3, mesh.position.z), 0xffd400, 6, 2.5);}
+      if (t < 1) requestAnimationFrame(f);
+      else {
+        AUD.clack(); burst3D(new THREE.Vector3(mesh.position.x, .3, mesh.position.z), 0xffffff, 8, 3);
+        popScale(mesh).then(() => {if (texto) $('dieval').textContent = 'Veredito: ' + v; res();});
+      }
+    })(t0);
+  });
+}
+function mostrarDica(alvo) {
+  const t = tiles[alvo]; let txt, bg;
+  if (alvo >= FIM) {txt = `🏁 Casa ${alvo}: chegada ao FIM!`; bg = '#ffe680';}
+  else if (t.tipo === 'verde') {txt = `🟢 Casa ${alvo}: prova aceita! +${t.valor} pontos`; bg = '#b8ffcf';}
+  else if (t.tipo === 'vermelho') {txt = `🔴 Casa ${alvo}: OBJEÇÃO! -${-t.valor} pontos`; bg = '#ffc2cb';}
+  else {txt = `⚪ Casa ${alvo}: neutra: pode render item ou mini-carta!`; bg = '#fff7da';}
+  $('hint').textContent = txt; $('hint').style.background = bg;
+}
+
+// =====================================================================
+//  EFEITOS VISUAIS (estilo HQ/anime): flash, linhas de velocidade, estrelas, textos
+// =====================================================================
+const fxEl = $('fx');
+const mkEl = (cls, html = '') => {const e = document.createElement('div'); e.className = cls; e.innerHTML = html; fxEl.appendChild(e); return e;};
+const rmLater = (e, ms) => setTimeout(() => e.remove(), ms);
+const _v = new THREE.Vector3();
+function toScreen(p) {_v.copy(p).project(camera); return {x:(_v.x*.5 + .5)*innerWidth, y:(-_v.y*.5 + .5)*innerHeight};}
+function fxFlash(cor = '#fff') {const e = mkEl('fxflash'); e.style.background = cor; rmLater(e, 450);}
+function fxLinhas(cor = '#fff') {if (REDUZ) return; const e = mkEl('fxlines'); e.style.setProperty('--lc', cor); rmLater(e, 900);}
+function fxStars(x, y, n = 14, cores = ['#ffd400', '#ff2e4d', '#1e6bff', '#22d65f', '#fff']) {
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('span'); s.className = 'fxstar';
+    s.textContent = Math.random() < .5 ? '★' : '✦';
+    s.style.cssText = `left:${x}px;top:${y}px;color:${cores[i % cores.length]};font-size:${18 + Math.random()*26}px`;
+    fxEl.appendChild(s);
+    const a = Math.random()*Math.PI*2, r = 90 + Math.random()*170, dx = Math.cos(a)*r, dy = Math.sin(a)*r;
+    s.animate([
+      {transform:'translate(-50%,-50%) translate(0px,0px) scale(.2) rotate(0deg)', opacity:1},
+      {transform:`translate(-50%,-50%) translate(${dx}px,${dy}px) scale(1.2) rotate(${(Math.random()-.5)*540}deg)`, opacity:0}
+    ], {duration:650 + Math.random()*350, easing:'cubic-bezier(.1,.8,.3,1)'}).onfinish = () => s.remove();
+  }
+}
+function fxFloat(txt, cor, x, y) {
+  const e = mkEl('fxfloat', esc(txt)); e.style.left = x + 'px'; e.style.top = y + 'px'; e.style.color = cor;
+  e.animate([
+    {transform:'translate(-50%,-50%) scale(.3)', opacity:0},
+    {transform:'translate(-50%,-90%) scale(1.25)', opacity:1, offset:.25},
+    {transform:'translate(-50%,-220%) scale(1)', opacity:0}
+  ], {duration:1300, easing:'ease-out'}).onfinish = () => e.remove();
+}
+function fxShake(amp = 9, ms = 450) {
+  if (REDUZ) return;
+  const kf = []; for (let i = 0; i < 10; i++) kf.push({transform:`translate(${(Math.random()-.5)*amp*2*(1-i/10)}px,${(Math.random()-.5)*amp*2*(1-i/10)}px)`});
+  kf.push({transform:'none'}); renderer.domElement.animate(kf, {duration:ms});
+}
+// texto gigante estilo "OBJEÇÃO!" com flash, linhas de velocidade e estrelas
+function fxTexto(txt, cor, o = {}) {
+  if (o.flash !== false) fxFlash(o.fc || '#fff');
+  if (o.lines !== false) fxLinhas(o.lc || '#fff');
+  const e = mkEl('fxtxt', esc(txt)); e.style.setProperty('--c', cor); rmLater(e, 1300);
+  if (o.stars !== false) fxStars(innerWidth/2, innerHeight*.42, 16);
+  if (o.shake) fxShake(o.shake === true ? 10 : o.shake);
+  crowdBoost = 1;
+  return sleep(o.ms || 800);
+}
+function pontosFx(k, txt, ganho) {
+  const p = pawns[k].mesh.position.clone(); p.y += 1.5; const s = toScreen(p);
+  fxFloat(txt, ganho ? '#6bff9a' : '#ff6b83', s.x, s.y);
+  fxStars(s.x, s.y, ganho ? 10 : 6, ganho ? ['#ffd400', '#22d65f', '#fff'] : ['#ff2e4d', '#ff7a1a', '#fff']);
+}
+
+// ---------- UI / Estado ----------
+let turno = 0, ocupado = false, fim = false;
+
+function renderScore() {
+  $('score').innerHTML = PLAYERS.map((p, k) =>
+    `<div class="pl ${k === turno && !fim ? 'active' : ''}" style="--c:${p.css}"><i class="dot"></i>
+     <div><b>${esc(p.nome)} · casa ${pawns[k].pos}</b><span>${pawns[k].pts} pts</span> <small>🎒${inv[k].length}/${MAXINV}</small></div></div>`).join('');
+  const cur = PLAYERS[turno], card = $('tcard');
+  card.style.borderColor = cur.css; $('avatar').style.color = cur.css;
+  if (cur.img) {$('avimg').src = cur.img; $('avimg').style.display = 'block'; $('avsvg').style.display = 'none';}
+  else {$('avimg').style.display = 'none'; $('avsvg').style.display = 'block';}
+  document.querySelectorAll('#score .dot').forEach((d, k) => {const im = PLAYERS[k].img; d.style.backgroundImage = im ? `url("${im.replace(/"/g, '%22')}")` : 'none';});
+  $('tname').textContent = fim ? 'Fim de jogo' : `Sua Vez: ${cur.nome}`;
+  renderInv();
+  if (renderScore.last !== turno) {
+    renderScore.last = turno; card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
+  }
+}
+function msg(t) { $('msg').textContent = t; }
+
+// ===== Inventário de Itens =====
+const MAXINV = 4, CHANCE_ITEM = 0.45, CHANCE_MINI = 0.30, MINI_PTS = 10, ROUBO = 50, DIF_CASAS = 3, DIF_PTS = 30, FOG_CASAS = 6, FOG_PTS = 50;
+const ITENS = {
+  foguete: {ic:'🚀', cor:'#ff2e4d', nome:'Foguete de Campanha', desc:`Dispara você ${FOG_CASAS} casas à frente. Qualquer rival que estiver posicionado na casa de destino (ou ultrapassado no caminho) ou no local exato onde você pousar perde ${FOG_PTS} pontos de reputação.`},
+  dado:  {ic:'🎲', cor:'#7b3cff', nome:'Dado Duplo', desc:'Rola 2 dados no lugar do dado normal e avança a soma dos dois.'},
+  roubo: {ic:'⚖️', cor:'#1e6bff', nome:'Roubo de Reputação', desc:`Escolha um rival: ele perde ${ROUBO} pontos e você ganha ${ROUBO}.`},
+  difamacao: {ic:'💣', cor:'#ff7a1a', nome:'Difamação Explosiva', desc:`Escolha 1 rival para retroceder ${DIF_CASAS} casas e perder ${DIF_PTS} pontos.`}
+};
+const ITEM_IDS = Object.keys(ITENS);
+let inv = [[], [], [], []];
+const sortearItem = () => ITEM_IDS[Math.floor(Math.random() * ITEM_IDS.length)];
+
+// Modal genérico: devolve (Promise) o "val" da opção clicada
+function imShow({selo, ic, tit, tx, opts}) {
+  return new Promise(res => {
+    AUD.modal();
+    $('imSel').textContent = selo || ''; $('imIc').textContent = ic || '';
+    $('imTit').textContent = tit || ''; $('imTx').textContent = tx || '';
+    const box = $('imOpts'); box.innerHTML = '';
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.innerHTML = esc(o.label) + (o.sub ? `<small>${esc(o.sub)}</small>` : '');
+      if (o.cls) b.className = o.cls;
+      b.onclick = () => {$('im').style.display = 'none'; res(o.val);};
+      box.appendChild(b);
+    });
+    const cx = $('im').firstElementChild; cx.style.animation = 'none'; void cx.offsetWidth; cx.style.animation = '';
+    $('im').style.display = 'flex';
+  });
+}
+
+async function receberItem(k, id) {
+  const it = ITENS[id], pl = PLAYERS[k], bag = inv[k];
+  AUD.item(); await fxTexto('ITEM!', '#ffd400', {ms:650});
+  if (bag.length < MAXINV) {
+    bag.push(id); renderScore();
+    await imShow({selo:'🎒 ITEM OBTIDO', ic:it.ic, tit:it.nome,
+      tx:`${pl.nome} encontrou um item na casa neutra!\n${it.desc}\nInventário: ${bag.length}/${MAXINV}`,
+      opts:[{label:'Guardar no inventário', val:0}]});
+    msg(`${pl.nome} guardou ${it.nome} no inventário.`);
+    return;
+  }
+  const r = await imShow({selo:'🎒 INVENTÁRIO CHEIO', ic:it.ic, tit:`Novo item: ${it.nome}`,
+    tx:`${pl.nome} já carrega ${MAXINV} itens.\n${it.desc}\nDescarte o item novo ou escolha um item atual para ser substituído por ele.`,
+    opts:[...bag.map((b, i) => ({label:`Trocar ${ITENS[b].ic} ${ITENS[b].nome}`, sub:`Slot ${i+1}`, val:i})),
+          {label:'Descartar item novo', cls:'sec', val:-1}]});
+  if (r === -1) msg(`${pl.nome} descartou ${it.nome}.`);
+  else {const velho = bag[r]; bag[r] = id; msg(`${pl.nome} trocou ${ITENS[velho].nome} por ${it.nome}.`);}
+  renderScore();
+}
+
+async function usarItem(idx) {
+  if (ocupado || fim || $('roll').disabled) return;
+  const k = turno, id = inv[k][idx]; if (!id) return;
+  if (id === 'dado') {
+    inv[k].splice(idx, 1);           // consumido ao usar
+    return jogar(true);
+  }
+  if (id === 'roubo') {
+    ocupado = true; $('roll').disabled = true; renderInv();
+    const alvos = PLAYERS.map((p, i) => i).filter(i => i !== k);
+    const r = await imShow({selo:'⚖️ ROUBO DE REPUTAÇÃO', ic:'⚖️', tit:'Escolha o alvo',
+      tx:`${PLAYERS[k].nome}: o rival escolhido perderá ${ROUBO} pontos e você ganhará ${ROUBO}.`,
+      opts:[...alvos.map(i => ({label:PLAYERS[i].nome, sub:`${pawns[i].pts} pts`, val:i})),
+            {label:'Cancelar', cls:'sec', val:-1}]});
+    if (r !== -1) {
+      inv[k].splice(idx, 1);         // consumido ao usar
+      AUD.roubo(); await fxTexto('ROUBADO!', '#4da3ff', {ms:700, lc:'#ffd400'});
+      pawns[r].pts -= ROUBO; pawns[k].pts += ROUBO; renderScore();
+      pontosFx(r, `−${ROUBO}`, false); pontosFx(k, `+${ROUBO}`, true); AUD.ganha();
+      msg(`${PLAYERS[k].nome} roubou ${ROUBO} pontos de ${PLAYERS[r].nome}!`);
+      await sleep(500);
+      await imShow({selo:'⚖️ REPUTAÇÃO ROUBADA', ic:'⚖️', tit:'Roubo concluído!',
+        tx:`${PLAYERS[r].nome} perdeu ${ROUBO} pontos.\n${PLAYERS[k].nome} ganhou ${ROUBO} pontos.`,
+        opts:[{label:'Continuar', val:0}]});
+    }
+    ocupado = false; $('roll').disabled = false; renderScore();
+  }
+  if (id === 'difamacao') {
+    ocupado = true; $('roll').disabled = true; renderInv();
+    const alvos = PLAYERS.map((p, i) => i).filter(i => i !== k);
+    const r = await imShow({selo:'💣 DIFAMAÇÃO EXPLOSIVA', ic:'💣', tit:'Escolha o alvo',
+      tx:`${PLAYERS[k].nome}: o rival escolhido retrocederá ${DIF_CASAS} casas e perderá ${DIF_PTS} pontos.`,
+      opts:[...alvos.map(i => ({label:PLAYERS[i].nome, sub:`casa ${pawns[i].pos} · ${pawns[i].pts} pts`, val:i})),
+            {label:'Cancelar', cls:'sec', val:-1}]});
+    if (r !== -1) {
+      inv[k].splice(idx, 1);         // uso único: consumido ao usar
+      const pw = pawns[r], de = pw.pos, para = Math.max(0, de - DIF_CASAS);
+      AUD.boom(); await fxTexto('DIFAMAÇÃO!', '#ff7a1a', {shake:true, ms:750});
+      pw.pts -= DIF_PTS; renderScore(); pontosFx(r, `−${DIF_PTS}`, false); AUD.perde();
+      burst3D(pw.mesh.position.clone().setY(1), 0xff7a1a, 22, 5);
+      msg(`💥 ${PLAYERS[k].nome} detonou uma Difamação Explosiva em ${PLAYERS[r].nome}!`);
+      while (pw.pos > para) {        // anima o peão recuando casa a casa
+        await hop(pw.mesh, pawnPos(pw.pos, r), pawnPos(pw.pos - 1, r));
+        pw.pos--; renderScore();
+      }
+      await imShow({selo:'💣 REPUTAÇÃO EM CHAMAS', ic:'💥', tit:'Difamação concluída!',
+        tx:`${PLAYERS[r].nome} recuou ${de - para} casa(s) (casa ${de} → ${para}) e perdeu ${DIF_PTS} pontos.`,
+        opts:[{label:'Continuar', val:0}]});
+    }
+    ocupado = false; $('roll').disabled = false; renderScore();
+  }
+  if (id === 'foguete') {
+    ocupado = true; $('roll').disabled = true; renderInv();
+    const pw = pawns[k], de = pw.pos, para = Math.min(FIM, de + FOG_CASAS);
+    // rivais ultrapassados no trajeto ou na casa de pouso (rivais na casa de partida não são atingidos)
+    const atingidos = PLAYERS.map((p, i) => i).filter(i => i !== k && pawns[i].pos > de && pawns[i].pos <= para);
+    const aviso = atingidos.length
+      ? `Rivais que serão atingidos: ${atingidos.map(i => PLAYERS[i].nome).join(', ')} (−${FOG_PTS} pts cada).`
+      : 'Nenhum rival está no trajeto agora.';
+    const r = await imShow({selo:'🚀 FOGUETE DE CAMPANHA', ic:'🚀', tit:'Lançar o foguete?',
+      tx:`${PLAYERS[k].nome} avançará ${para - de} casa(s) (casa ${de} → ${para}).\n${aviso}`,
+      opts:[{label:'🚀 Lançar!', val:1}, {label:'Cancelar', cls:'sec', val:0}]});
+    if (r === 1) {
+      inv[k].splice(idx, 1);         // uso único: consumido ao usar
+      msg(`🚀 ${PLAYERS[k].nome} disparou um Foguete de Campanha!`);
+      await fxTexto('DECOLAR!', '#ff2e4d', {ms:650, lc:'#ffd400'});
+      await voar(pw.mesh, pawnPos(de, k), pawnPos(para, k));   // voo em arco até a casa de destino
+      pw.pos = para; renderScore(); tileDip(para);
+      AUD.boom(); fxShake(12, 500); crowdBoost = 1;
+      burst3D(pawnPos(para, k).setY(.6), 0xff7a1a, 24, 5); burst3D(pawnPos(para, k).setY(.6), 0xffd400, 14, 4);
+      atingidos.forEach(i => {pawns[i].pts -= FOG_PTS; pontosFx(i, `−${FOG_PTS}`, false);});
+      if (atingidos.length) AUD.perde();
+      renderScore();
+      const det = atingidos.length
+        ? atingidos.map(i => `${PLAYERS[i].nome} perdeu ${FOG_PTS} pontos de reputação.`).join('\n')
+        : 'Nenhum rival foi atingido.';
+      msg(atingidos.length ? `🚀 O foguete atingiu ${atingidos.map(i => PLAYERS[i].nome).join(', ')}!` : `🚀 ${PLAYERS[k].nome} avançou sem atingir ninguém.`);
+      await sleep(600);
+      await imShow({selo:'🚀 CAMPANHA DECOLOU', ic:'🚀', tit:'Foguete lançado!',
+        tx:`${PLAYERS[k].nome} avançou ${para - de} casa(s) (casa ${de} → ${para}).\n${det}`,
+        opts:[{label:'Continuar', val:0}]});
+      if (pw.pos >= FIM) {
+        fim = true; msg(`${PLAYERS[k].nome} chegou ao Veredito Final de foguete! Sessão encerrada!`);
+        renderScore(); return mostrarFim();
+      }
+    }
+    ocupado = false; $('roll').disabled = false; renderScore();
+  }
+}
+
+function renderInv() {
+  const bag = inv[turno] || [], bloq = ocupado || fim || $('roll').disabled;
+  $('invT').textContent = `🎒 ${PLAYERS[turno].nome}`;
+  $('invN').textContent = `${bag.length}/${MAXINV}`;
+  let h = '';
+  for (let i = 0; i < MAXINV; i++) {
+    const id = bag[i];
+    if (id) {
+      const it = ITENS[id];
+      h += `<div class="slot cheio" style="--ic:${it.cor}" title="${esc(it.desc)}"><div class="sic">${it.ic}</div><div class="nm">${esc(it.nome)}</div><button data-i="${i}" ${bloq ? 'disabled' : ''}>Usar</button></div>`;
+    } else h += `<div class="slot vazio">vazio</div>`;
+  }
+  $('invSlots').innerHTML = h;
+}
+
+// ===== Baralho dinâmico: Política + Deepfakes + IA =====
+// {J}=jogador. Cada carta: título, narrativa, lição. Os pontos vêm da casa em que o peão caiu.
+const CARTAS = {
+verde:[
+ {t:'Checagem antes do compartilhamento', n:'Um áudio atribuído a um candidato "confessando" um esquema viralizou. {J} não repassou: buscou a fonte original, consultou agências de checagem e descobriu que a voz era clonada por IA. Sua denúncia derrubou o boato antes das urnas.', l:'Antes de compartilhar, pergunte: quem publicou primeiro? Há veículo confiável confirmando?'},
+ {t:'Marca d\'água na campanha', n:'A equipe de {J} passou a rotular todo material feito com IA e a publicar os vídeos originais com data e local. Quando surgiu um deepfake falso da campanha, o público comparou e reconheceu a fraude em minutos.', l:'Transparência no uso de IA fortalece a confiança e facilita desmentir falsificações.'},
+ {t:'Denúncia à plataforma', n:'{J} notou uma rede de perfis automáticos (bots) repetindo a mesma mensagem com segundos de diferença. Reportou o padrão à plataforma, que derrubou a rede e reduziu o alcance da campanha de desinformação.', l:'Contas novas, textos idênticos e postagens em massa são sinais clássicos de bots.'},
+ {t:'Educação midiática no bairro', n:'{J} organizou uma oficina para ensinar eleitores a notar sinais de deepfake: piscar irregular, sombras estranhas, lábios fora de sincronia. Na semana seguinte, vários participantes avisaram os grupos de família sobre um vídeo falso.', l:'Alfabetização midiática é a vacina mais barata contra a manipulação.'},
+ {t:'IA a serviço da transparência', n:'{J} usou uma ferramenta de IA para resumir projetos de lei em linguagem simples e publicou a análise com as fontes oficiais. O debate público ficou mais informado e o material foi elogiado por jornalistas.', l:'IA pode ampliar a participação cidadã quando usada com fontes verificáveis e revisão humana.'},
+ {t:'Pedido de correção público', n:'Um vídeo editado de {J} tirou uma frase de contexto. Em vez de rebater com outro boato, {J} publicou a gravação completa e pediu correção aos veículos. A retratação veio em horas.', l:'Responder à manipulação com o contexto original e provas é mais eficaz do que revidar.'},
+ {t:'Verificação de imagem por busca reversa', n:'Uma foto de "multidão em comício" circulava como atual. {J} fez uma busca reversa e provou que era de outro país, anos antes. A checagem foi compartilhada por milhares de pessoas.', l:'Busca reversa de imagem revela fotos antigas ou geradas e reaproveitadas fora de contexto.'},
+ {t:'Código de ética para IA', n:'{J} convenceu a coligação a assinar um compromisso público: nada de vozes sintéticas de adversários, nada de perfis falsos e auditoria dos anúncios. O pacto virou exemplo para outras campanhas.', l:'Regras claras e públicas desestimulam o uso abusivo de IA na política.'}
+],
+vermelho:[
+ {t:'Deepfake de última hora', n:'Na véspera da votação, circulou um vídeo falso de {J} supostamente aceitando suborno. Era um deepfake. Mesmo desmentido, o estrago viralizou mais rápido que a correção e a reputação sofreu.', l:'Mentiras virais correm mais que correções. Desconfie de escândalos que surgem perto de eleições.'},
+ {t:'Exército de bots', n:'Milhares de contas automáticas inundaram as redes atacando {J} com a mesma hashtag. Parecia indignação popular, mas era fabricada. A impressão de consenso falso minou a credibilidade.', l:'Volume não é prova de verdade: robôs simulam multidões.'},
+ {t:'Voz clonada por IA', n:'Eleitores receberam ligações com a voz de {J} dizendo que o local de votação mudaria. Era áudio clonado. Muitos ficaram confusos e a campanha perdeu apoio e confiança.', l:'Confirme informações eleitorais apenas em canais oficiais, mesmo se a voz parecer conhecida.'},
+ {t:'Algoritmo da bolha', n:'Anúncios segmentados por IA mostravam a cada grupo uma versão contraditória das promessas de {J}. Quando as versões vieram à tona, o público se sentiu enganado.', l:'Microssegmentação pode esconder contradições e manipular emoções sem debate aberto.'},
+ {t:'Compartilhou sem checar', n:'{J} repassou um vídeo "bombástico" sem verificar. Era montagem com IA. A repercussão negativa obrigou um pedido público de desculpas e arranhou a imagem de responsável.', l:'Quem compartilha também é responsável. Um clique pode virar desinformação em escala.'},
+ {t:'Imagem fabricada', n:'Uma foto gerada por IA mostrava {J} em um evento que nunca aconteceu. Rápida de criar, difícil de desmentir: parte do público passou a duvidar de tudo o que {J} publicava.', l:'O "dividendo do mentiroso": quando tudo pode ser falso, até o verdadeiro perde credibilidade.'},
+ {t:'Perfil falso de apoio', n:'A campanha de {J} criou perfis falsos com rostos gerados por IA para elogiar o candidato. Jornalistas descobriram a farsa e o caso virou escândalo de manipulação.', l:'Fingir apoio popular com identidades sintéticas destrói a confiança quando é descoberto.'},
+ {t:'Notícia falsa gerada em massa', n:'Um site automatizado publicou centenas de "reportagens" falsas sobre {J}, com citações inventadas por IA. Sites de busca e redes replicaram o conteúdo antes de qualquer checagem.', l:'Textos fluentes não são sinal de verdade: IA também inventa fatos com muita convicção.'}
+]};
+let baralho = {verde:[], vermelho:[]};
+function sortearCarta(tipo, jogador, valor) {
+  if (!baralho[tipo].length) baralho[tipo] = CARTAS[tipo].map((_, i) => i).sort(() => Math.random() - .5);
+  const c = CARTAS[tipo][baralho[tipo].pop()];
+  return {tipo, titulo:c.t, narrativa:c.n.replace(/\{J\}/g, jogador), licao:c.l, valor};
+}
+function mostrarCarta(carta) {
+  return new Promise(res => {
+    AUD.modal();
+    const v = carta.tipo === 'verde', el = $('carta');
+    el.className = carta.tipo;
+    $('cSelo').textContent = v ? '⚖️ PROVA ACEITA' : '⚖️ OBJEÇÃO ACEITA';
+    $('cIc').textContent = v ? '🟢' : '🔴';
+    $('cTit').textContent = carta.titulo;
+    $('cTx').textContent = carta.narrativa;
+    $('cLi').textContent = '💡 ' + carta.licao;
+    $('cPt').textContent = (v ? '+' : '−') + Math.abs(carta.valor) + ' pontos';
+    el.style.display = 'flex';
+    $('cOk').onclick = () => {el.style.display = 'none'; res();};
+  });
+}
+
+// ===== Mini-cartas das casas brancas: pergunta rápida (acertou = +MINI_PTS, errou = 0) =====
+const MINIS = [
+ {q:'Chegou no seu grupo um áudio chocante atribuído a um político. Qual o melhor primeiro passo?', c:'Buscar a fonte original e conferir em agências de checagem', e:['Repassar logo, para alertar todo mundo','Comentar indignado e depois ver se é verdade'], l:'Voz clonada por IA é cada vez mais convincente: confirme a fonte antes de compartilhar.'},
+ {q:'Qual destes é um sinal comum de vídeo deepfake?', c:'Lábios fora de sincronia e piscar irregular', e:['Imagem em alta resolução','Muitos compartilhamentos'], l:'Detalhes como sombras, dentes, mãos e sincronia labial costumam denunciar falsificações.'},
+ {q:'Dezenas de contas recém-criadas postam o mesmo texto com segundos de diferença. O mais provável é:', c:'Uma rede de bots', e:['Apoio espontâneo da população','Um erro da plataforma'], l:'Contas novas, textos idênticos e postagens em massa são sinais clássicos de automação.'},
+ {q:'Como descobrir se uma foto "de hoje" é na verdade antiga?', c:'Fazer uma busca reversa de imagem', e:['Aumentar o brilho da foto','Contar as curtidas'], l:'A busca reversa mostra onde e quando a imagem apareceu pela primeira vez.'},
+ {q:'Onde confirmar mudança de local de votação?', c:'Somente nos canais oficiais da Justiça Eleitoral', e:['Em áudio de um conhecido','Num post viral com muitas curtidas'], l:'Informação eleitoral só vale se vier de canal oficial, mesmo que a voz pareça familiar.'},
+ {q:'O que é o "dividendo do mentiroso"?', c:'Quando tudo pode ser falso, até o verdadeiro perde credibilidade', e:['O lucro de quem vende anúncios políticos','A multa aplicada a quem espalha boatos'], l:'A existência de deepfakes permite negar provas reais alegando que "é IA".'},
+ {q:'Um texto gerado por IA está fluente e cheio de detalhes. Isso significa que:', c:'Não garante que seja verdade: IA também inventa fatos', e:['Está sempre correto','Foi escrito para manipular'], l:'Fluência não é sinal de veracidade. Cheque as fontes.'},
+ {q:'Qual é uma boa prática para campanhas que usam IA?', c:'Rotular o conteúdo feito com IA', e:['Clonar a voz dos adversários','Criar perfis falsos de apoio'], l:'Transparência fortalece a confiança e facilita desmentir falsificações.'}
+];
+let baralhoMini = [];
+async function miniCarta(k) {
+  if (!baralhoMini.length) baralhoMini = MINIS.map((_, i) => i).sort(() => Math.random() - .5);
+  const m = MINIS[baralhoMini.pop()], pl = PLAYERS[k];
+  msg(`⚪ ${pl.nome} recebeu uma Mini-Carta de Perguntas!`);
+  AUD.duplo(); await fxTexto('PERGUNTA!', '#b36bff', {ms:650});
+  const opts = [m.c, ...m.e].map((t, i) => ({label:t, val:i === 0 ? 1 : 0})).sort(() => Math.random() - .5);
+  const ok = await imShow({selo:'⚪ MINI-CARTA · CASA NEUTRA', ic:'❓', tit:`${pl.nome}, responda!`,
+    tx:`${m.q}\n(Acertou: +${MINI_PTS} pontos · Errou: nada acontece)`, opts});
+  if (ok) {
+    AUD.acerto(); await fxTexto('CORRETO!', '#6bff9a', {ms:600, lc:'#ffd400'});
+    pawns[k].pts += MINI_PTS; renderScore(); pontosFx(k, `+${MINI_PTS}`, true);
+  } else {
+    AUD.erro(); await fxTexto('ERROU!', '#ff6b83', {ms:600, shake:true});
+  }
+  msg(ok ? `${pl.nome} acertou e ganhou ${MINI_PTS} pontos!` : `${pl.nome} errou a resposta.`);
+  await imShow({selo:ok ? '✅ RESPOSTA CORRETA' : '❌ RESPOSTA INCORRETA', ic:ok ? '🟢' : '🔴',
+    tit:ok ? `+${MINI_PTS} pontos!` : 'Não foi dessa vez',
+    tx:`${ok ? '' : 'Resposta certa: ' + m.c + '\n'}💡 ${m.l}`, opts:[{label:'Continuar', val:0}]});
+}
+
+async function jogar(duplo = false) {
+  if (ocupado || fim) return;
+  ocupado = true; $('roll').disabled = true; renderInv();
+  const v1 = 1 + Math.floor(Math.random()*6), v2 = duplo ? 1 + Math.floor(Math.random()*6) : 0, v = v1 + v2;
+  const pl = PLAYERS[turno], pw = pawns[turno];
+  $('dieval').textContent = 'Rolando...'; $('hint').textContent = '';
+  if (duplo) {AUD.duplo(); await fxTexto('DADO DUPLO!', '#b36bff', {ms:700});}
+  AUD.dado(); fxLinhas('#ffd400');
+  if (duplo) {
+    await Promise.all([rolarDado(v1, die, -1.6, false), rolarDado(v2, die2, 1.6, false)]);
+    $('dieval').textContent = `Veredito: ${v1} + ${v2} = ${v}`;
+  } else await rolarDado(v1);
+  const sp = toScreen(die.position);
+  AUD.veredito(); fxFloat(`${v}!`, '#ffd400', sp.x, sp.y - 20); fxStars(sp.x, sp.y, 10);
+  const alvo = Math.min(FIM, pw.pos + v);
+  mostrarDica(alvo);
+  msg(duplo ? `🎲 Dado Duplo! ${v1} + ${v2} = ${v}. ${pl.nome} apresenta uma prova e avança ${alvo - pw.pos} casa(s).`
+            : `Veredito do Dado: ${v}! ${pl.nome} apresenta uma prova e avança ${alvo - pw.pos} casa(s).`);
+  await sleep(1100);
+  die.visible = false; die2.visible = false;
+  while (pw.pos < alvo) {
+    const from = pawnPos(pw.pos, turno), to = pawnPos(pw.pos + 1, turno);
+    await hop(pw.mesh, from, to); pw.pos++; renderScore();
+  }
+  tileDip(pw.pos);
+  if (pw.pos >= FIM) { fim = true; msg(`${pl.nome} chegou ao Veredito Final! Sessão encerrada!`); renderScore(); return mostrarFim(); }
+  const t = tiles[pw.pos];
+  const pp = pawnPos(pw.pos, turno).setY(.5);
+  if (t.tipo === 'verde' || t.tipo === 'vermelho') {
+    const verde = t.tipo === 'verde';
+    burst3D(pp, verde ? 0x22d65f : 0xff2e4d, 12, 4);
+    msg(verde ? `Procede! ${pl.nome} recebeu uma carta de Boa Conduta.` : `OBJEÇÃO! ${pl.nome} recebeu uma carta de Má Conduta.`);
+    verde ? AUD.prova() : AUD.objecao();
+    await fxTexto(verde ? 'PROVA!' : 'OBJEÇÃO!', verde ? '#22d65f' : '#ff2e4d',
+      {ms:850, shake:!verde, lc:verde ? '#ffd400' : '#fff', fc:verde ? '#fff' : '#ffd0d8'});
+    if (!verde) {await cair(pw.mesh, turno); await sleep(450);}   // desmaia na casa vermelha
+    await mostrarCarta(sortearCarta(t.tipo, pl.nome, t.valor));
+    pw.pts += t.valor; renderScore();
+    pontosFx(turno, (verde ? '+' : '−') + Math.abs(t.valor), verde);
+    if (verde) AUD.ganha(); else {AUD.perde(); fxShake(6, 300);}
+    msg(verde ? `${pl.nome} ganhou ${t.valor} pontos!` : `${pl.nome} perdeu ${-t.valor} pontos! Desmaiou de vergonha...`);
+    if (verde) await sleep(600);
+    else {await sleep(1500); await levantar(pw.mesh); await sleep(250);}   // fica caído um momento e se levanta
+  }
+  else {
+    burst3D(pp, 0xffffff, 6, 3);
+    const rnd = Math.random();
+    if (t.tipo === 'branco' && rnd < CHANCE_ITEM) await receberItem(turno, sortearItem());
+    else if (t.tipo === 'branco' && rnd < CHANCE_ITEM + CHANCE_MINI) await miniCarta(turno);
+    else msg(`Sem objeções: nada acontece com ${pl.nome}.`);
+  }
+  turno = (turno + 1) % 4; renderScore();
+  ocupado = false; $('roll').disabled = false; renderInv();
+}
+
+async function mostrarFim() {
+  AUD.vitoria(); AUD.duck(true);
+  await fxTexto('VEREDITO!', '#ffd400', {ms:1100, shake:true, lc:'#ffd400'});
+  const rank = PLAYERS.map((p, k) => ({p, pts:pawns[k].pts})).sort((a, b) => b.pts - a.pts);
+  const top = rank[0].pts, venc = rank.filter(r => r.pts === top);
+  $('winner').textContent = venc.length > 1 ? '⚖️ Julgamento empatado: ' + venc.map(r => r.p.nome).join(' e ')
+    : `⚖️ Veredito final: ${venc[0].p.nome} vence!`;
+  $('rank').innerHTML = rank.map((r, i) => `<li><i class="dot" style="background:${r.p.css}"></i>
+    <span>${i+1}º ${esc(r.p.nome)}</span><span>${r.pts} pts</span></li>`).join('');
+  $('modal').style.display = 'flex';
+}
+
+function novo() {
+  AUD.duck(false); crowdBoost = 0;
+  baralho = {verde:[], vermelho:[]}; baralhoMini = []; $('carta').style.display = 'none'; $('im').style.display = 'none';
+  inv = [[], [], [], []]; die2.visible = false;
+  buildBoard(); buildPawns();
+  turno = 0; ocupado = false; fim = false;
+  $('modal').style.display = 'none'; $('roll').disabled = false; $('dieval').textContent = 'Veredito: —'; $('hint').textContent = ''; die.visible = false;
+  msg(`Sessão aberta! A palavra é de ${PLAYERS[0].nome}.`); renderScore();
+}
+
+$('roll').onclick = () => jogar(false);
+$('invSlots').onclick = e => {const b = e.target.closest('button[data-i]'); if (b && !b.disabled) usarItem(+b.dataset.i);};
+$('invH').onclick = () => $('inv').classList.toggle('min');
+const fileImg = [null, null, null, null], NCOR = ['Vermelho', 'Verde', 'Azul', 'Amarelo'];
+$('rows').innerHTML = PLAYERS.map((p, k) => `<div class="row"><i class="dot" style="background:${p.css}"></i><div class="f"><b>${NCOR[k]}</b><input id="n${k}" maxlength="30" placeholder="Jogador ${k+1}"><div class="av"><img class="th" id="t${k}" alt=""><input type="file" id="f${k}" accept="image/*"><input id="u${k}" placeholder="ou URL da imagem"></div></div></div>`).join('');
+PLAYERS.forEach((p, k) => {
+  const th = $('t'+k), show = src => {th.src = src; th.style.display = 'block';};
+  th.onerror = () => th.style.display = 'none';
+  $('f'+k).onchange = e => {
+    const f = e.target.files[0]; if (!f) {fileImg[k] = null; return;}
+    const r = new FileReader(); r.onload = () => {fileImg[k] = r.result; show(r.result);}; r.readAsDataURL(f);
+  };
+  $('u'+k).oninput = e => {const u = e.target.value.trim(); if (u && !fileImg[k]) show(u);};
+});
+$('avimg').onerror = () => {$('avimg').style.display = 'none'; $('avsvg').style.display = 'block';};
+function iniciar() {
+  AUD.init();
+  aplicarModo((document.querySelector('input[name=modo]:checked') || {}).value);
+  PLAYERS.forEach((p, k) => {p.nome = $('n'+k).value.trim() || `Jogador ${k+1}`; p.img = fileImg[k] || $('u'+k).value.trim() || null;});
+  $('setup').style.display = 'none'; novo();
+}
+$('start').onclick = iniciar;
+document.querySelectorAll('.row input').forEach(i => i.addEventListener('keydown', e => {if (e.key === 'Enter') iniciar();}));
+$('again').onclick = novo;
+$('rename').onclick = () => {$('modal').style.display = 'none'; $('setup').style.display = 'flex'; $('roll').disabled = true; renderInv();};
+
+// áudio: o navegador só libera o som após um gesto do usuário
+const iconeMute = () => $('mute').textContent = AUD.isMuted() ? '🔇' : '🔊';
+$('mute').onclick = () => {AUD.init(); AUD.toggle(); iconeMute();};
+addEventListener('keydown', e => {
+  if ((e.key === 'm' || e.key === 'M') && !/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) {AUD.init(); AUD.toggle(); iconeMute();}
+});
+addEventListener('pointerdown', () => AUD.init(), {passive:true});
+addEventListener('keydown', () => AUD.init(), {passive:true});
+document.addEventListener('visibilitychange', () => AUD.vis(document.hidden));
+iconeMute();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+novo(); $('roll').disabled = true;
+const clock = new THREE.Clock();
+(function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(.05, clock.getDelta()), now = performance.now(), tt = now/1000;
+  updateCam();
+  // partículas 3D
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i]; p.life += dt;
+    if (p.life >= p.max) {scene.remove(p.m); parts.splice(i, 1); continue;}
+    p.v.y -= 10*dt; p.m.position.addScaledVector(p.v, dt);
+    p.m.scale.setScalar(Math.max(.01, 1 - p.life/p.max)); p.m.rotation.x += dt*8; p.m.rotation.y += dt*6;
+  }
+  // mola dos peões (squash & stretch ao pousar) e "afundar" das casas
+  pawns.forEach(p => {
+    const sp = p.mesh.userData.spring; if (!sp) return;
+    const d = (now - sp)/1000;
+    if (d > .55) {p.mesh.scale.set(1, 1, 1); p.mesh.userData.spring = null; return;}
+    const s = Math.exp(-8*d)*Math.cos(26*d);
+    p.mesh.scale.set(1 + .18*s, 1 - .3*s, 1 + .18*s);
+  });
+  tileObjs.forEach(g => {
+    const dp = g.userData.dip; if (!dp) return;
+    const d = (now - dp)/1000;
+    if (d > .5) {g.position.y = 0; g.userData.dip = null; return;}
+    g.position.y = -.18*Math.exp(-9*d)*Math.cos(22*d);
+  });
+  // plateia e juiz
+  crowdBoost *= Math.exp(-dt*1.5);
+  crowd.forEach(c => {c.g.position.y = c.y + Math.abs(Math.sin(tt*3 + c.ph))*(.1 + crowdBoost*.8);});
+  juiz.rotation.z = Math.sin(tt*2)*.05;
+  renderer.render(scene, camera);
+})();
+</script>
+</body>
+</html>
